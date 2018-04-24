@@ -4,6 +4,11 @@ output:
         reference_docx: QaTableStyle6.docx
         toc: yes
 params: 
+    hospital: 
+        label: "Hospital from which data is being pulled"
+        value: CHCO
+        input: select
+        choices: [CHCO, DH]
     uid:
         label: "Username"
         input: text
@@ -52,8 +57,8 @@ con <- DBI::dbConnect(odbc::odbc(),
                       Driver   = "SQL Server",
                       Server   = "cc-s-d05.ucdenver.pvt",
                       Database = "VDW_3_1_DH",
-                      user     = "coxmartm",
-                      password = "TiMnP4_uC!0218")
+                      user     = "",
+                      password = "")
 
 ```
 

@@ -1,16 +1,15 @@
-# chordsTables
+# surg2rec
 
-The goal of chordsTables is to create a simple interface for CHORDS members to 
-generate quality assurance tables.
+The goal of surg2rec is to generate the tables requested by Lisa McLeod
 
 ## Installation
 
-You can install chordsTables from github with:
+You can install surg2rec from github with:
 
 
 ``` r
 # install.packages("devtools")
-devtools::install_github("UCCC/CHORDS-QA")
+devtools::install_github("UCCC/McLeod")
 ```
 
 ## Example
