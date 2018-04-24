@@ -1,9 +1,26 @@
 Package: surg2rec
-Title: What the Package Does (one line, title case)
-Version: 0.0.0.9000
-Authors@R: person("First", "Last", email = "first.last@example.com", role = c("aut", "cre"))
-Description: What the package does (one paragraph).
-Depends: R (>= 3.4.4)
+Title: Package for generating tables from CHORDS data for Surgery to Recovery project
+Version: 0.4.1
+Authors@R: c(
+    person("Matthew", "Cox-Martin", email = "matthew.cox-martin@ucdenver.edu", role = c("aut", "cre"))
+    )
+Maintainer: Matthew Cox-Martin <matthew.cox-martin@ucdenver.edu>
+Description: This package contains the function, .RMD files, and data files necessary for generating tables from CHORDS data for Surgery to Recovery project.
+Depends:
+    R (>= 3.0.2),
+    httr (>= 1.3.1)
+Imports: 
+    tidyverse,
+    rmarkdown,
+    RODBC,
+    odbc,
+    knitr,
+    dplyr,
+    DBI,
+    shiny
 License: What license is it under?
+URL: http://github.com/UCC/McLeod
+BugReports: http://github.com/UCC/McLeod/issues
 Encoding: UTF-8
 LazyData: true
+RoxygenNote: 6.0.1
