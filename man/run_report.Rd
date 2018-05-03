@@ -4,10 +4,10 @@
 \alias{run_report}
 \title{Run code to generate priority tables.}
 \usage{
-run_report(priority, dbserver, dbname)
+run_report(hospital, dbserver, dbname)
 }
 \arguments{
-\item{priority}{A character vector.  This is the priority table for which you want to generate the report. Options are "P1", "P2", or "P3".}
+\item{hospital}{A character vector.  Enter the hospital for which the data is being pulled.  The options include \code{CHCO} or \code{DH}}
 
 \item{dbserver}{A string vector.  The name of the database server name. This is selected via an html window and contains the following options \code{cc-s-d05.ucdenver.pvt}, \code{vwphbisql06}, \code{ihrsql1.ihr.or.kp.org}, \code{PRDVDWSQL01}, \code{SQL01}, \code{BI01}, and \code{vwedwtstsql04}}
 

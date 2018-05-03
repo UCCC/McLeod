@@ -18,6 +18,7 @@
 #' @import DBI
 #' @import shiny
 #' @import httr
+#' @import qwraps2
 #' @export
 
 run_report <- function(hospital, dbserver, dbname) {

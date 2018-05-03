@@ -17,7 +17,8 @@ Imports:
     knitr,
     dplyr,
     DBI,
-    shiny
+    shiny,
+    qwraps2
 License: What license is it under?
 URL: http://github.com/UCC/McLeod
 BugReports: http://github.com/UCC/McLeod/issues
