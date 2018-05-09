@@ -22,5 +22,5 @@
 #' @export
 
 run_report <- function(hospital, dbserver, dbname) {
-  rmarkdown::render(input = system.file("rmd/tables.Rmd", package = "surg2rect"), params = "ask", output_dir = paste0("C:/Users/", Sys.info()["login"], "/Documents"))
+  rmarkdown::render(input = system.file("rmd/tables.Rmd", package = "surg2rec"), params = "ask", output_dir = paste0("C:/Users/", Sys.info()["login"], "/Documents"))
 }
