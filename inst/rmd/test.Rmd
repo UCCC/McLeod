@@ -85,25 +85,22 @@ ageCatCalc <- function(age){
 
 This table contains the number of procedures performed by year and type of procedure
 
-
 ```{r tab1_sum_stats}
           
 tab1a <- odbc::dbGetQuery(con,
        "SELECT
-       *
-FROM
-(
-    SELECT
-           CASE
+        DISTINCT z.ENC_ID,
+        z.PERSON_ID,
+       MAX(CASE
                WHEN z.PX IN('0RG4070', '0RG4071', '0RG407J', '0RG40A0', '0RG40A1', '0RG40AJ', '0RG40J0', '0RG40J1', '0RG40JJ', '0RG40K0', '0RG40K1', '0RG40KJ', '0RG40Z0', '0RG40Z1', '0RG40ZJ', '0RG6070', '0RG6071', '0RG607J', '0RG60A0', '0RG60A1', '0RG60AJ', '0RG60J0', '0RG60J1', '0RG60JJ', '0RG60K0', '0RG60K1', '0RG60KJ', '0RG60Z0', '0RG60Z1', '0RG60ZJ', '0RG7070', '0RG7071', '0RG707J', '0RG70A0', '0RG70A1', '0RG70AJ', '0RG70J0', '0RG70J1', '0RG70JJ', '0RG70K0', '0RG70K1', '0RG70KJ', '0RG70Z0', '0RG70Z1', '0RG70ZJ', '0RG8070', '0RG8071', '0RG807J', '0RG80A0', '0RG80A1', '0RG80AJ', '0RG80J0', '0RG80J1', '0RG80JJ', '0RG80K0', '0RG80K1', '0RG80KJ', '0RG80Z0', '0RG80Z1', '0RG80ZJ', '0RGA070', '0RGA071', '0RGA07J', '0RGA0A0', '0RGA0A1', '0RGA0AJ', '0RGA0J0', '0RGA0J1', '0RGA0JJ', '0RGA0K0', '0RGA0K1', '0RGA0KJ', '0RGA0Z0', '0RGA0Z1', '0RGA0ZJ', '0SG0070', '0SG0071', '0SG007J', '0SG00A0', '0SG00A1', '0SG00AJ', '0SG00J0', '0SG00J1', '0SG00JJ', '0SG00K0', '0SG00K1', '0SG00KJ', '0SG00Z0', '0SG00Z1', '0SG00ZJ', '0SG1070', '0SG1071', '0SG107J', '0SG10A0', '0SG10A1', '0SG10AJ', '0SG10J0', '0SG10J1', '0SG10JJ', '0SG10K0', '0SG10K1', '0SG10KJ', '0SG10Z0', '0SG10Z1', '0SG10ZJ', '0SG3070', '0SG3071', '0SG307J', '0SG30A0', '0SG30A1', '0SG30AJ', '0SG30J0', '0SG30J1', '0SG30JJ', '0SG30K0', '0SG30K1', '0SG30KJ', '0SG30Z0', '0SG30Z1', '0SG30ZJ', '81', '81.01', '81.02', '81.03', '81.04', '81.05', '81.06', '81.07', '81.08', '81.09', '81.3', '81.35', '81.36', '81.37', '81.38', '81.39', '81.61', '81.62', '81.63', '81.64', '84.51', '22532', '22533', '22548', '22551', '22554', '22556', '22558', '22586', '22590', '22595', '22600', '22610', '22612', '22614', '22630', '22633', '22634', '22800', '22802', '22804', '22808', '22810', '22812', '22818', '22819', '22830', '22840', '22841', '22842', '22843', '22844', '22845', '22846', '22847', '22848', '22849', '22850', '22852', '22853', '22854', '22855', '22856', '22857', '22858', '22859', '22861', '22862', '22864', '22865', '22867', '22868', '22869', '22870')
-               THEN 'spine'
+               THEN 1 ELSE 0 END) AS spine,
+      MAX(CASE
                WHEN z.PX IN('0WU80JZ', '0WU84JZ', '34.74', '21740', '21742', '21743')
-               THEN 'pectus'
-           END AS ProcedureType,
+               THEN 1 ELSE 0 END) AS pectus,
       YEAR(z.ADATE) as px_date
-    FROM
+FROM
          DEMOGRAPHICS a
-         JOIN [PROCEDURES] z
+         INNER JOIN [PROCEDURES] z
               ON z.PERSON_ID = a.PERSON_ID
     WHERE  z.ADATE >= '01/01/2011'
            AND DATEDIFF(YY, a.BIRTH_DATE, z.ADATE) - CASE
@@ -118,12 +115,21 @@ FROM
                     END <= 26
            AND 
                z.PX IN('0RG4070', '0RG4071', '0RG407J', '0RG40A0', '0RG40A1', '0RG40AJ', '0RG40J0', '0RG40J1', '0RG40JJ', '0RG40K0', '0RG40K1', '0RG40KJ', '0RG40Z0', '0RG40Z1', '0RG40ZJ', '0RG6070', '0RG6071', '0RG607J', '0RG60A0', '0RG60A1', '0RG60AJ', '0RG60J0', '0RG60J1', '0RG60JJ', '0RG60K0', '0RG60K1', '0RG60KJ', '0RG60Z0', '0RG60Z1', '0RG60ZJ', '0RG7070', '0RG7071', '0RG707J', '0RG70A0', '0RG70A1', '0RG70AJ', '0RG70J0', '0RG70J1', '0RG70JJ', '0RG70K0', '0RG70K1', '0RG70KJ', '0RG70Z0', '0RG70Z1', '0RG70ZJ', '0RG8070', '0RG8071', '0RG807J', '0RG80A0', '0RG80A1', '0RG80AJ', '0RG80J0', '0RG80J1', '0RG80JJ', '0RG80K0', '0RG80K1', '0RG80KJ', '0RG80Z0', '0RG80Z1', '0RG80ZJ', '0RGA070', '0RGA071', '0RGA07J', '0RGA0A0', '0RGA0A1', '0RGA0AJ', '0RGA0J0', '0RGA0J1', '0RGA0JJ', '0RGA0K0', '0RGA0K1', '0RGA0KJ', '0RGA0Z0', '0RGA0Z1', '0RGA0ZJ', '0SG0070', '0SG0071', '0SG007J', '0SG00A0', '0SG00A1', '0SG00AJ', '0SG00J0', '0SG00J1', '0SG00JJ', '0SG00K0', '0SG00K1', '0SG00KJ', '0SG00Z0', '0SG00Z1', '0SG00ZJ', '0SG1070', '0SG1071', '0SG107J', '0SG10A0', '0SG10A1', '0SG10AJ', '0SG10J0', '0SG10J1', '0SG10JJ', '0SG10K0', '0SG10K1', '0SG10KJ', '0SG10Z0', '0SG10Z1', '0SG10ZJ', '0SG3070', '0SG3071', '0SG307J', '0SG30A0', '0SG30A1', '0SG30AJ', '0SG30J0', '0SG30J1', '0SG30JJ', '0SG30K0', '0SG30K1', '0SG30KJ', '0SG30Z0', '0SG30Z1', '0SG30ZJ', '81', '81.01', '81.02', '81.03', '81.04', '81.05', '81.06', '81.07', '81.08', '81.09', '81.3', '81.35', '81.36', '81.37', '81.38', '81.39', '81.61', '81.62', '81.63', '81.64', '84.51', '0WU80JZ', '0WU84JZ', '34.74', '22532', '22533', '22548', '22551', '22554', '22556', '22558', '22586', '22590', '22595', '22600', '22610', '22612', '22614', '22630', '22633', '22634', '22800', '22802', '22804', '22808', '22810', '22812', '22818', '22819', '22830', '22840', '22841', '22842', '22843', '22844', '22845', '22846', '22847', '22848', '22849', '22850', '22852', '22853', '22854', '22855', '22856', '22857', '22858', '22859', '22861', '22862', '22864', '22865', '22867', '22868', '22869', '22870', '21740', '21742', '21743')
-) AS P
-PIVOT(COUNT(ProcedureType) FOR ProcedureType IN(
-                                                       [spine],
-                                                       [pectus])) AS PIV
-ORDER BY px_date"
+GROUP BY z.PERSON_ID, z.ENC_ID, YEAR(z.ADATE)"
+
 )
+
+tab1a2 <- tab1a %>% 
+  group_by(PERSON_ID) %>% 
+  mutate(
+    min_yr = min(px_date),
+    use_yr = if_else(min_yr == px_date, 1, 0)
+  ) %>% 
+  ungroup(.) %>% 
+  dplyr::filter(use_yr == 1) %>% 
+  group_by(px_date) %>% 
+  summarise(spine = sum(spine), pectus = sum(pectus)) %>% 
+  ungroup(.)
 
 tab1a_tot <- odbc::dbGetQuery(con,
        "SELECT
@@ -148,57 +154,75 @@ GROUP BY YEAR(z.ADATE)
 ORDER BY YEAR(z.ADATE)"
 )
 
-tab1a_all <- tab1a %>% 
+tab1a_all <- tab1a2 %>% 
   left_join(tab1a_tot, by = "px_date") %>% 
   mutate(
     spine2  = paste0(spine, " (", round((spine/n_pxs) * 100, 2), "%)"),
-    pectus2 = paste0(pectus, " (", round((pectus/n_pxs) * 100, 2), "%)")
+    pectus2 = paste0(pectus, " (", round((pectus/n_pxs) * 100, 2), "%)"),
+    total   = paste0(spine + pectus, " (", round(((spine + pectus)/n_pxs) * 100, 2), "%)")
   ) %>% 
-  select(px_date, spine2, pectus2)
+  select(px_date, spine2, pectus2, total)
 
 ```
 
 ```{r tab1a_out, results="asis"}
 
-knitr::kable(tab1a_all, col.names = c("Year", "Spine", "Pectus"))
+knitr::kable(tab1a_all, col.names = c("Year", "Spine", "Pectus", "Total"))
 
 ```
 
-
-# Table 1B:
-
-#Table 1B: Cumulative Demographic Demographic Differences by Facility
+##Table 1B: Cumulative Demographic Demographic Differences by Facility
 
 ```{r tab1b}
 
+proc_test <- odbc::dbGetQuery(con,
+                                 "SELECT DISTINCT(PROCEDURES_ID)
+                                 FROM PROCEDURES")
+
+proc_test2 <- odbc::dbGetQuery(con,
+                                 "SELECT DISTINCT(ENC_ID)
+                                 FROM PROCEDURES")
+                                 
+
 tab1b <- odbc::dbGetQuery(con,
        "SELECT
-        DISTINCT(z.ENC_ID),
-       CASE
+        DISTINCT z.ENC_ID,
+        z.PERSON_ID,
+       MAX(CASE
                WHEN z.PX IN('0RG4070', '0RG4071', '0RG407J', '0RG40A0', '0RG40A1', '0RG40AJ', '0RG40J0', '0RG40J1', '0RG40JJ', '0RG40K0', '0RG40K1', '0RG40KJ', '0RG40Z0', '0RG40Z1', '0RG40ZJ', '0RG6070', '0RG6071', '0RG607J', '0RG60A0', '0RG60A1', '0RG60AJ', '0RG60J0', '0RG60J1', '0RG60JJ', '0RG60K0', '0RG60K1', '0RG60KJ', '0RG60Z0', '0RG60Z1', '0RG60ZJ', '0RG7070', '0RG7071', '0RG707J', '0RG70A0', '0RG70A1', '0RG70AJ', '0RG70J0', '0RG70J1', '0RG70JJ', '0RG70K0', '0RG70K1', '0RG70KJ', '0RG70Z0', '0RG70Z1', '0RG70ZJ', '0RG8070', '0RG8071', '0RG807J', '0RG80A0', '0RG80A1', '0RG80AJ', '0RG80J0', '0RG80J1', '0RG80JJ', '0RG80K0', '0RG80K1', '0RG80KJ', '0RG80Z0', '0RG80Z1', '0RG80ZJ', '0RGA070', '0RGA071', '0RGA07J', '0RGA0A0', '0RGA0A1', '0RGA0AJ', '0RGA0J0', '0RGA0J1', '0RGA0JJ', '0RGA0K0', '0RGA0K1', '0RGA0KJ', '0RGA0Z0', '0RGA0Z1', '0RGA0ZJ', '0SG0070', '0SG0071', '0SG007J', '0SG00A0', '0SG00A1', '0SG00AJ', '0SG00J0', '0SG00J1', '0SG00JJ', '0SG00K0', '0SG00K1', '0SG00KJ', '0SG00Z0', '0SG00Z1', '0SG00ZJ', '0SG1070', '0SG1071', '0SG107J', '0SG10A0', '0SG10A1', '0SG10AJ', '0SG10J0', '0SG10J1', '0SG10JJ', '0SG10K0', '0SG10K1', '0SG10KJ', '0SG10Z0', '0SG10Z1', '0SG10ZJ', '0SG3070', '0SG3071', '0SG307J', '0SG30A0', '0SG30A1', '0SG30AJ', '0SG30J0', '0SG30J1', '0SG30JJ', '0SG30K0', '0SG30K1', '0SG30KJ', '0SG30Z0', '0SG30Z1', '0SG30ZJ', '81', '81.01', '81.02', '81.03', '81.04', '81.05', '81.06', '81.07', '81.08', '81.09', '81.3', '81.35', '81.36', '81.37', '81.38', '81.39', '81.61', '81.62', '81.63', '81.64', '84.51', '22532', '22533', '22548', '22551', '22554', '22556', '22558', '22586', '22590', '22595', '22600', '22610', '22612', '22614', '22630', '22633', '22634', '22800', '22802', '22804', '22808', '22810', '22812', '22818', '22819', '22830', '22840', '22841', '22842', '22843', '22844', '22845', '22846', '22847', '22848', '22849', '22850', '22852', '22853', '22854', '22855', '22856', '22857', '22858', '22859', '22861', '22862', '22864', '22865', '22867', '22868', '22869', '22870')
-               THEN 'spine'
+               THEN 1 ELSE 0 END) AS spine,
+      MAX(CASE
                WHEN z.PX IN('0WU80JZ', '0WU84JZ', '34.74', '21740', '21742', '21743')
-               THEN 'pectus'
-           END AS ProcedureType,
+               THEN 1 ELSE 0 END) AS pectus,
       DATEDIFF(YY, a.BIRTH_DATE, z.ADATE) - CASE
                       WHEN DATEADD(YY, DATEDIFF(YY, a.BIRTH_DATE, z.ADATE), a.BIRTH_DATE) > z.ADATE
                       THEN 1
                       ELSE 0 
                   END AS [AGE],
+      z.ADATE,
+      z.PROCDATE,
       a.GENDER,
       a.PRIMARY_LANGUAGE,
       a.RACE1, 
       b.HT,
       b.WT,
-      c.GEOCODE
+      b.MEASURE_DATE,
+      c.GEOCODE,
+      c.LOC_START,
+      c.LOC_END,
+      d.DDATE
 FROM
          DEMOGRAPHICS a
          INNER JOIN [PROCEDURES] z
               ON z.PERSON_ID = a.PERSON_ID
+         LEFT JOIN [ENCOUNTERS] d
+              ON z.PERSON_ID = d.PERSON_ID AND z.ENC_ID = d.ENC_ID
          LEFT JOIN [VITAL_SIGNS] b
-              ON z.PERSON_ID = b.PERSON_ID
+              ON z.PERSON_ID = b.PERSON_ID AND z.ENC_ID = b.ENC_ID
          LEFT JOIN [CENSUS_LOCATION] c
-              ON z.PERSON_ID = c.PERSON_ID
+              ON z.PERSON_ID = c.PERSON_ID AND 
+                CASE WHEN c.LOC_END IS NOT NULL AND z.ADATE BETWEEN c.LOC_START 
+                  AND c.LOC_END THEN 1 WHEN c.LOC_END IS NULL AND c.LOC_START <= z.ADATE THEN 1 ELSE 0 END = 1
     WHERE  z.ADATE >= '01/01/2011'
            AND DATEDIFF(YY, a.BIRTH_DATE, z.ADATE) - CASE
                       WHEN DATEADD(YY, DATEDIFF(YY, a.BIRTH_DATE, z.ADATE), a.BIRTH_DATE) > z.ADATE
@@ -211,29 +235,52 @@ FROM
                       ELSE 0
                     END <= 26
            AND 
-               z.PX IN('0RG4070', '0RG4071', '0RG407J', '0RG40A0', '0RG40A1', '0RG40AJ', '0RG40J0', '0RG40J1', '0RG40JJ', '0RG40K0', '0RG40K1', '0RG40KJ', '0RG40Z0', '0RG40Z1', '0RG40ZJ', '0RG6070', '0RG6071', '0RG607J', '0RG60A0', '0RG60A1', '0RG60AJ', '0RG60J0', '0RG60J1', '0RG60JJ', '0RG60K0', '0RG60K1', '0RG60KJ', '0RG60Z0', '0RG60Z1', '0RG60ZJ', '0RG7070', '0RG7071', '0RG707J', '0RG70A0', '0RG70A1', '0RG70AJ', '0RG70J0', '0RG70J1', '0RG70JJ', '0RG70K0', '0RG70K1', '0RG70KJ', '0RG70Z0', '0RG70Z1', '0RG70ZJ', '0RG8070', '0RG8071', '0RG807J', '0RG80A0', '0RG80A1', '0RG80AJ', '0RG80J0', '0RG80J1', '0RG80JJ', '0RG80K0', '0RG80K1', '0RG80KJ', '0RG80Z0', '0RG80Z1', '0RG80ZJ', '0RGA070', '0RGA071', '0RGA07J', '0RGA0A0', '0RGA0A1', '0RGA0AJ', '0RGA0J0', '0RGA0J1', '0RGA0JJ', '0RGA0K0', '0RGA0K1', '0RGA0KJ', '0RGA0Z0', '0RGA0Z1', '0RGA0ZJ', '0SG0070', '0SG0071', '0SG007J', '0SG00A0', '0SG00A1', '0SG00AJ', '0SG00J0', '0SG00J1', '0SG00JJ', '0SG00K0', '0SG00K1', '0SG00KJ', '0SG00Z0', '0SG00Z1', '0SG00ZJ', '0SG1070', '0SG1071', '0SG107J', '0SG10A0', '0SG10A1', '0SG10AJ', '0SG10J0', '0SG10J1', '0SG10JJ', '0SG10K0', '0SG10K1', '0SG10KJ', '0SG10Z0', '0SG10Z1', '0SG10ZJ', '0SG3070', '0SG3071', '0SG307J', '0SG30A0', '0SG30A1', '0SG30AJ', '0SG30J0', '0SG30J1', '0SG30JJ', '0SG30K0', '0SG30K1', '0SG30KJ', '0SG30Z0', '0SG30Z1', '0SG30ZJ', '81', '81.01', '81.02', '81.03', '81.04', '81.05', '81.06', '81.07', '81.08', '81.09', '81.3', '81.35', '81.36', '81.37', '81.38', '81.39', '81.61', '81.62', '81.63', '81.64', '84.51', '0WU80JZ', '0WU84JZ', '34.74', '22532', '22533', '22548', '22551', '22554', '22556', '22558', '22586', '22590', '22595', '22600', '22610', '22612', '22614', '22630', '22633', '22634', '22800', '22802', '22804', '22808', '22810', '22812', '22818', '22819', '22830', '22840', '22841', '22842', '22843', '22844', '22845', '22846', '22847', '22848', '22849', '22850', '22852', '22853', '22854', '22855', '22856', '22857', '22858', '22859', '22861', '22862', '22864', '22865', '22867', '22868', '22869', '22870', '21740', '21742', '21743')"
+               z.PX IN('0RG4070', '0RG4071', '0RG407J', '0RG40A0', '0RG40A1', '0RG40AJ', '0RG40J0', '0RG40J1', '0RG40JJ', '0RG40K0', '0RG40K1', '0RG40KJ', '0RG40Z0', '0RG40Z1', '0RG40ZJ', '0RG6070', '0RG6071', '0RG607J', '0RG60A0', '0RG60A1', '0RG60AJ', '0RG60J0', '0RG60J1', '0RG60JJ', '0RG60K0', '0RG60K1', '0RG60KJ', '0RG60Z0', '0RG60Z1', '0RG60ZJ', '0RG7070', '0RG7071', '0RG707J', '0RG70A0', '0RG70A1', '0RG70AJ', '0RG70J0', '0RG70J1', '0RG70JJ', '0RG70K0', '0RG70K1', '0RG70KJ', '0RG70Z0', '0RG70Z1', '0RG70ZJ', '0RG8070', '0RG8071', '0RG807J', '0RG80A0', '0RG80A1', '0RG80AJ', '0RG80J0', '0RG80J1', '0RG80JJ', '0RG80K0', '0RG80K1', '0RG80KJ', '0RG80Z0', '0RG80Z1', '0RG80ZJ', '0RGA070', '0RGA071', '0RGA07J', '0RGA0A0', '0RGA0A1', '0RGA0AJ', '0RGA0J0', '0RGA0J1', '0RGA0JJ', '0RGA0K0', '0RGA0K1', '0RGA0KJ', '0RGA0Z0', '0RGA0Z1', '0RGA0ZJ', '0SG0070', '0SG0071', '0SG007J', '0SG00A0', '0SG00A1', '0SG00AJ', '0SG00J0', '0SG00J1', '0SG00JJ', '0SG00K0', '0SG00K1', '0SG00KJ', '0SG00Z0', '0SG00Z1', '0SG00ZJ', '0SG1070', '0SG1071', '0SG107J', '0SG10A0', '0SG10A1', '0SG10AJ', '0SG10J0', '0SG10J1', '0SG10JJ', '0SG10K0', '0SG10K1', '0SG10KJ', '0SG10Z0', '0SG10Z1', '0SG10ZJ', '0SG3070', '0SG3071', '0SG307J', '0SG30A0', '0SG30A1', '0SG30AJ', '0SG30J0', '0SG30J1', '0SG30JJ', '0SG30K0', '0SG30K1', '0SG30KJ', '0SG30Z0', '0SG30Z1', '0SG30ZJ', '81', '81.01', '81.02', '81.03', '81.04', '81.05', '81.06', '81.07', '81.08', '81.09', '81.3', '81.35', '81.36', '81.37', '81.38', '81.39', '81.61', '81.62', '81.63', '81.64', '84.51', '0WU80JZ', '0WU84JZ', '34.74', '22532', '22533', '22548', '22551', '22554', '22556', '22558', '22586', '22590', '22595', '22600', '22610', '22612', '22614', '22630', '22633', '22634', '22800', '22802', '22804', '22808', '22810', '22812', '22818', '22819', '22830', '22840', '22841', '22842', '22843', '22844', '22845', '22846', '22847', '22848', '22849', '22850', '22852', '22853', '22854', '22855', '22856', '22857', '22858', '22859', '22861', '22862', '22864', '22865', '22867', '22868', '22869', '22870', '21740', '21742', '21743')
+GROUP BY z.PERSON_ID, z.ENC_ID, z.PROCDATE, DATEDIFF(YY, a.BIRTH_DATE, z.ADATE) - CASE
+                      WHEN DATEADD(YY, DATEDIFF(YY, a.BIRTH_DATE, z.ADATE), a.BIRTH_DATE) > z.ADATE
+                      THEN 1
+                      ELSE 0 
+                  END, z.ADATE, a.GENDER, a.PRIMARY_LANGUAGE, a.RACE1, b.HT, b.WT, b.MEASURE_DATE, c.GEOCODE, c.LOC_START, c.LOC_END, d.DDATE"
 )
 
-tab1b$stateFP <- ifelse(tab1b$GEOCODE == "", NA, substr(tab1b$GEOCODE, 1, 2)) 
+tab1b$stateCnty <-ifelse(tab1b$GEOCODE == "", NA, substr(tab1b$GEOCODE, 1, 5))
 
-states <- chordsTables::stateCnty %>% 
-  select(state, stateFP) %>% 
-  filter(!duplicated(stateFP))
+## Change code below when package is created
+states <- chordsTables::stateCnty #%>% 
+  #select(state, stateFP, countyFP, stateCnty) 
 
 tab1b2 <- tab1b %>% 
-  left_join(., states, by = "stateFP")
-  
+  left_join(., states, by = "stateCnty") %>%   
+  group_by(PERSON_ID) %>%  
+  mutate( 
+    end_geodt = if_else(is.na(LOC_END), as.Date("2018-05-09"), as.Date(LOC_END)), 
+    geo_adate = if_else(ADATE <= end_geodt, 1, 0),
+    date_diff = as.Date(PROCDATE) - as.Date(MEASURE_DATE),
+    miss_htwt = if_else(!is.na(HT) & !is.na(WT), 1, 0),
+    min_diff  = min(abs(date_diff), na.rm = T),
+    use_date  = if_else(as.Date(PROCDATE) + min_diff == MEASURE_DATE, 1, 0),
+    dup_id    = if_else(duplicated(ENC_ID), 1, 0),
+    avg_ht    = mean(HT, na.rm = T),
+    avg_wt    = mean(WT, na.rm = T),
+    miss_avg  = if_else(!is.na(avg_ht) & !is.na(avg_wt), 1, 0),
+    min_yr    = min(ADATE),
+    use_yr    = if_else(min_yr == ADATE, 1, 0),
+    ProcedureType = if_else(spine == 1, "Spine", "Pectus")
+  ) %>%  
+  ungroup(.) %>% 
+  dplyr::filter(use_yr == 1) %>% 
+  dplyr::filter(!duplicated(PERSON_ID) & !duplicated(ENC_ID))
 
 tab1b_sum <- 
     list("Age" =
        list("Mean (SD)" = ~ qwraps2::mean_sd(AGE, na_rm = T),
             "Median (IQR)"    = ~ qwraps2::median_iqr(AGE, na_rm = T)),
-       "Gender (Freqency(%))" =
+       "Gender, Freqency(%)" =
        list("Male" = ~ qwraps2::n_perc(GENDER == "M", na_rm = T)),
-       "Primary Language (Freqency(%))" =
+       "Primary Language, Freqency(%)" =
        list("English" = ~ qwraps2::n_perc(PRIMARY_LANGUAGE == "eng", na_rm = T),
             "Spanish" = ~ qwraps2::n_perc(PRIMARY_LANGUAGE == "spa", na_rm = T)),
-       "Race (Freqency(%))" =
+       "Race, Freqency(%)" =
        list("Native Hawaiian or Other Pacific Islander"   = ~ qwraps2::n_perc(RACE1 == "HP", na_rm = T),
             "American Indian/Alaska Native"               = ~ qwraps2::n_perc(RACE1 == "IN", na_rm = T),
             "Asian"                                       = ~ qwraps2::n_perc(RACE1 == "AS", na_rm = T),
@@ -242,9 +289,9 @@ tab1b_sum <-
             "More than one race"                          = ~ qwraps2::n_perc(RACE1 == "MU", na_rm = T),
             "Unknown"                                     = ~ qwraps2::n_perc(RACE1 == "UN", na_rm = T)),
        "Height" =
-       list("Mean (SD)" = ~ qwraps2::mean_sd(HT, na_rm = T)),
+       list("Mean (SD)" = ~ qwraps2::mean_sd(avg_ht, na_rm = T)),
        "Weight" = 
-       list("Mean (SD)" = ~ qwraps2::mean_sd(WT, na_rm = T)),
+       list("Mean (SD)" = ~ qwraps2::mean_sd(avg_wt, na_rm = T)),
        "State of patient address" = 
          list("Colorado"     = ~ qwraps2::n_perc(state == "CO", na_rm = T),
               "Wyoming"      = ~ qwraps2::n_perc(state == "WY", na_rm = T),
@@ -253,9 +300,9 @@ tab1b_sum <-
               "Oklahoma"     = ~ qwraps2::n_perc(state == "OK", na_rm = T),
               "South Dakota" = ~ qwraps2::n_perc(state == "SD", na_rm = T),
               "Kansas"       = ~ qwraps2::n_perc(state == "KS", na_rm = T),
-              "Other"        = ~ qwraps2::n_perc(!(state %in% c("CO", "WY", "NE", "NM", "OK", "SD", "KS")) , 
+              "Other/Missing"= ~ qwraps2::n_perc((!(state %in% c("CO", "WY", "NE", "NM", "OK", "SD", "KS") & !is.na(state))) , 
                                                  na_rm = T))
-)
+    )
 
 
 ```
@@ -271,6 +318,80 @@ if(length(dimnames(table(tab1b2$ProcedureType))) == 1){
   tab1b_proc_sum <- qwraps2::summary_table(dplyr::group_by(tab1b2, "ProcedureType"), tab1b_sum)
   tab1b_out <- cbind(tab1b_tot_sum, tab1b_proc_sum)
   print(tab1b_out, cnames = c("Total", dimnames(table(tab1b2$ProcedureType))[[1]]))
-} 
+}
+
+
+```
+
+##Table 1C: Patient Location by Year
+
+```{r tab1c_out, results="asis"}
+
+tab1c <- tab1b2 %>% 
+  dplyr::filter(state == "CO") %>% 
+  mutate(
+    YEAR = lubridate::year(PROCDATE)
+  ) %>% 
+  group_by(YEAR)
+
+qwraps2::summary_table(tab1c, list("County of Residence" = with(tab1c, qwraps2::tab_summary(countyName, n_perc_args = list(digits = 2, show_symbol = TRUE))))) 
+
+```
+
+## Table 1D: Length of Stay by Location & Type Summary (All Years)
+
+```{r tab1d_data}
+
+tab1d <- tab1b2 %>% 
+  mutate(
+    los  = as.Date(DDATE) - as.Date(ADATE),
+    los2 = if_else(los < 0, NA_integer_, as.integer(los))
+  )
+
+tab1d_sum <- list(
+  "Length of Stay (Days)" =
+    list(
+      "Mean (SD)"    =~ qwraps2::mean_sd(los2, na_rm = T),
+      "Median (IQR)" =~ qwraps2::median_iqr(los2, na_rm = T),
+      "Range"        =~ paste(min(los2, na.rm = T), " - ", max(los2, na.rm = T))
+    )
+)
+
+```
+
+```{r out_tab1d, results="asis"}
+
+if(length(dimnames(table(tab1d$ProcedureType))) == 1){
+  tab1d_tot_sum <- qwraps2::summary_table(tab1d, tab1d_sum)
+  tab1d_out <- tab1d_tot_sum
+  print(tab1d_out, cnames = dimnames(table(tab1d$ProcedureType))[[1]][1])
+} else{
+  tab1d_tot_sum <- qwraps2::summary_table(tab1d, tab1d_sum)
+  tab1d_proc_sum <- qwraps2::summary_table(dplyr::group_by(tab1d, ProcedureType), tab1d_sum)
+  tab1d_out <- cbind(tab1d_tot_sum, tab1d_proc_sum)
+  print(tab1b_out, cnames = c("Total", dimnames(table(tab1b2$ProcedureType))[[1]]))
+}
+
+```
+
+## Table Pack 1E: Length of Stay by Location and Type
+
+```{r tab1e_data, results="asis"}
+
+tab1e <- tab1d %>% 
+  mutate(
+    YEAR = lubridate::year(PROCDATE)
+  )
+
+if(length(dimnames(table(tab1e$ProcedureType))) == 1){
+  tab1e_tot_sum <- qwraps2::summary_table(dplyr::group_by(tab1e, YEAR), tab1d_sum)
+  tab1e_out <- tab1e_tot_sum
+  print(tab1e_out)
+} else{
+  tab1e_tot_sum <- qwraps2::summary_table(tab1e, tab1e_sum)
+  tab1e_proc_sum <- qwraps2::summary_table(dplyr::group_by(tab1e, ProcedureType, YEAR), tab1d_sum)
+  tab1e_out <- cbind(tab1e_tot_sum, tab1e_proc_sum)
+  print(tab1b_out, cnames = c("Total", dimnames(table(tab1b2$ProcedureType))[[1]]))
+}
 
 ```
