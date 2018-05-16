@@ -133,11 +133,14 @@ codes <- surg2rec::codes
 
 # Provider specialties
 specialties <- surg2rec::specialties
+specialties <- chordsTables::specialties
 
 # Provider type
 prov_type <- surg2rec::prov_type
+prov_type <- chordsTables::prov_type
 
 #Create long version of codes file
+codes <- readr::read_csv("Q:/MattCM/CHORDS/surg2rec/inclusion codes.csv")
 codes2 <- codes %>% 
   tidyr::gather(.) %>% 
   dplyr::filter(complete.cases(.)) %>% 
@@ -246,18 +249,9 @@ knitr::kable(tab1a_all, col.names = c("Year", "Spine", "Pectus", "Total"))
 
 ##Table 1B: Cumulative Demographic Demographic Differences by Facility
 
-Heights and weights in this table represent an average of the heights and weights recorded during the procedure encounter.  This was done because 1) height and weight weren't measured at the same time for some individuals and 2) height and weight weren't measured during consistent times for each participant.  
+Heights and weights in this table represent an average of the heights and weights recorded during the procedure encounter.  This was done because 1) height and weight weren't measured at the same time for some individuals and 2) height and weight weren't measured during consistent times for each participant (i.e,g measures could be at any point in the encounter).  
 
 ```{r tab1b}
-
-proc_test <- odbc::dbGetQuery(con,
-                                 "SELECT DISTINCT(PROCEDURES_ID)
-                                 FROM PROCEDURES")
-
-proc_test2 <- odbc::dbGetQuery(con,
-                                 "SELECT DISTINCT(ENC_ID)
-                                 FROM PROCEDURES")
-                                 
 
 tab1b <- odbc::dbGetQuery(con,
        "SELECT
@@ -326,6 +320,7 @@ states <- chordsTables::stateCnty #%>%
 
 tab1b2 <- tab1b %>% 
   left_join(., states, by = "stateCnty") %>%   
+  arrange(PERSON_ID, PROCDATE) %>% 
   group_by(PERSON_ID) %>%  
   mutate( 
     end_geodt = if_else(is.na(LOC_END), as.Date("2018-05-09"), as.Date(LOC_END)), 
@@ -347,7 +342,10 @@ tab1b2 <- tab1b %>%
   dplyr::filter(!duplicated(PERSON_ID) & !duplicated(ENC_ID))
 
 tab1b_sum <- 
-    list("Age" =
+    list("Sample size" =
+        list(
+           "N = " =~ dplyr::n_distinct(PERSON_ID)),
+       "Age" =
        list("Mean (SD)" = ~ qwraps2::mean_sd(AGE, na_rm = T),
             "Median (IQR)"    = ~ qwraps2::median_iqr(AGE, na_rm = T)),
        "Gender, Freqency(%)" =
@@ -552,6 +550,9 @@ tab2a4 <- bind_cols(tab2a3, dx_tab2) %>%
 
 ```
 
+Of the `r n_distinct(tab2a$PERSON_ID)` patients from the initial cohort, `r n_distinct(tab2a2$PERSON_ID)` had primary diagnoses that could be used for the following table.
+
+
 ```{r tab2a_out, results="asis"}
 knitr::kable(tab2a4, col.names = c("Procedure Type", "Primary DX", "Count of DX", "Mean Length of Stay", "Median Length of Stay"))
 
@@ -559,9 +560,7 @@ knitr::kable(tab2a4, col.names = c("Procedure Type", "Primary DX", "Count of DX"
 
 ##Table Pack 2B: Procedure Code Frequencies & LOS by Location (TABLE NOT POPULATED)
 
-Per email with Lisa McLeod on 05/14/2018, this table is not populated.
-
-Need to add in count of unique combination of procedures and mean/median length of stay
+I need to add in count of unique combination of procedures and mean/median length of stay
 
 ```{r, tab2b_data, eval=FALSE}
 
@@ -629,6 +628,8 @@ tab2b_test <- as.data.frame(table(tab2b2$ProcedureType, tab2b2$PX))
 #   dplyr::rename(ProcedureType = Var1, PX = Var2)
 
 ```
+
+Of the `r n_distinct(tab2b$PERSON_ID)` patients from the initial cohort, `r n_distinct(tab2b2$PERSON_ID)` had one or more valid procedure/CPT codes that could be used for the following table.
 
 ```{r tab2b_out}
 knitr::kable(tab2b_test, col.names = c("Procedure Type", "Procedure", "Count"))
@@ -737,6 +738,8 @@ tab2c_sum <- data.frame(names = names_sh, counts = count_sh, means = mean_los_sh
 
 ```
 
+Of the `r n_distinct(tab2c$PERSON_ID)` patients from the initial cohort, `r n_distinct(tab2c2$PERSON_ID)` had valid data from the SOCIAL_HISTORY table that was used to create the table below.
+
 ```{r tab2c_out, results="asis"}
 
 knitr::kable(tab2c_sum, col.names = c(paste0("Variables N = ", nrow(tab2c2)), "Count", "Mean LOS", "Median LOS")) 
@@ -747,63 +750,69 @@ knitr::kable(tab2c_sum, col.names = c(paste0("Variables N = ", nrow(tab2c2)), "C
 
 ## Table 3A: Type of Surgeon/Physician of Record for Index
 
-This table contains information only for physicians, not fellows, residents, or other providers.
-
 ```{r med_names}
 
-tab3a <- odbc::dbGetQuery(con,
-       "SELECT
-        DISTINCT z.ENC_ID,
-        z.PERSON_ID,
-        z.PX,
-        z.PROVIDER,
-        z.PERFORMINGPROVIDER,
-        d.SPECIALTY,
-        d.SPECIALTY2,
-        d.SPECIALTY3,
-        d.SPECIALTY4,
-        d.PROVIDER_TYPE,
-       MAX(CASE.
-               WHEN z.PX IN('0RG4070', '0RG4071', '0RG407J', '0RG40A0', '0RG40A1', '0RG40AJ', '0RG40J0', '0RG40J1', '0RG40JJ', '0RG40K0', '0RG40K1', '0RG40KJ', '0RG40Z0', '0RG40Z1', '0RG40ZJ', '0RG6070', '0RG6071', '0RG607J', '0RG60A0', '0RG60A1', '0RG60AJ', '0RG60J0', '0RG60J1', '0RG60JJ', '0RG60K0', '0RG60K1', '0RG60KJ', '0RG60Z0', '0RG60Z1', '0RG60ZJ', '0RG7070', '0RG7071', '0RG707J', '0RG70A0', '0RG70A1', '0RG70AJ', '0RG70J0', '0RG70J1', '0RG70JJ', '0RG70K0', '0RG70K1', '0RG70KJ', '0RG70Z0', '0RG70Z1', '0RG70ZJ', '0RG8070', '0RG8071', '0RG807J', '0RG80A0', '0RG80A1', '0RG80AJ', '0RG80J0', '0RG80J1', '0RG80JJ', '0RG80K0', '0RG80K1', '0RG80KJ', '0RG80Z0', '0RG80Z1', '0RG80ZJ', '0RGA070', '0RGA071', '0RGA07J', '0RGA0A0', '0RGA0A1', '0RGA0AJ', '0RGA0J0', '0RGA0J1', '0RGA0JJ', '0RGA0K0', '0RGA0K1', '0RGA0KJ', '0RGA0Z0', '0RGA0Z1', '0RGA0ZJ', '0SG0070', '0SG0071', '0SG007J', '0SG00A0', '0SG00A1', '0SG00AJ', '0SG00J0', '0SG00J1', '0SG00JJ', '0SG00K0', '0SG00K1', '0SG00KJ', '0SG00Z0', '0SG00Z1', '0SG00ZJ', '0SG1070', '0SG1071', '0SG107J', '0SG10A0', '0SG10A1', '0SG10AJ', '0SG10J0', '0SG10J1', '0SG10JJ', '0SG10K0', '0SG10K1', '0SG10KJ', '0SG10Z0', '0SG10Z1', '0SG10ZJ', '0SG3070', '0SG3071', '0SG307J', '0SG30A0', '0SG30A1', '0SG30AJ', '0SG30J0', '0SG30J1', '0SG30JJ', '0SG30K0', '0SG30K1', '0SG30KJ', '0SG30Z0', '0SG30Z1', '0SG30ZJ', '81', '81.01', '81.02', '81.03', '81.04', '81.05', '81.06', '81.07', '81.08', '81.09', '81.3', '81.35', '81.36', '81.37', '81.38', '81.39', '81.61', '81.62', '81.63', '81.64', '84.51', '22532', '22533', '22548', '22551', '22554', '22556', '22558', '22586', '22590', '22595', '22600', '22610', '22612', '22614', '22630', '22633', '22634', '22800', '22802', '22804', '22808', '22810', '22812', '22818', '22819', '22830', '22840', '22841', '22842', '22843', '22844', '22845', '22846', '22847', '22848', '22849', '22850', '22852', '22853', '22854', '22855', '22856', '22857', '22858', '22859', '22861', '22862', '22864', '22865', '22867', '22868', '22869', '22870')
-               THEN 1 ELSE 0 END) AS spine,
-      MAX(CASE
-               WHEN z.PX IN('0WU80JZ', '0WU84JZ', '34.74', '21740', '21742', '21743')
-               THEN 1 ELSE 0 END) AS pectus,
-      z.PROCDATE,
-      YEAR(z.ADATE) as px_date
-FROM
-         DEMOGRAPHICS a
-         INNER JOIN [PROCEDURES] z
-              ON z.PERSON_ID = a.PERSON_ID
-         LEFT JOIN [PROVIDER_SPECIALTY] d
-              ON z.PERFORMINGPROVIDER = d.PROVIDER
-    WHERE  z.ADATE >= '01/01/2011'
-           AND DATEDIFF(YY, a.BIRTH_DATE, z.ADATE) - CASE
-                      WHEN DATEADD(YY, DATEDIFF(YY, a.BIRTH_DATE, z.ADATE), a.BIRTH_DATE) > z.ADATE
-                      THEN 1
-                      ELSE 0
-                    END >= 10
-           AND DATEDIFF(YY, a.BIRTH_DATE, z.ADATE) - CASE
-                      WHEN DATEADD(YY, DATEDIFF(YY, a.BIRTH_DATE, z.ADATE), a.BIRTH_DATE) > z.ADATE
-                      THEN 1
-                      ELSE 0
-                    END <= 26
-           AND 
-               z.PX IN('0RG4070', '0RG4071', '0RG407J', '0RG40A0', '0RG40A1', '0RG40AJ', '0RG40J0', '0RG40J1', '0RG40JJ', '0RG40K0', '0RG40K1', '0RG40KJ', '0RG40Z0', '0RG40Z1', '0RG40ZJ', '0RG6070', '0RG6071', '0RG607J', '0RG60A0', '0RG60A1', '0RG60AJ', '0RG60J0', '0RG60J1', '0RG60JJ', '0RG60K0', '0RG60K1', '0RG60KJ', '0RG60Z0', '0RG60Z1', '0RG60ZJ', '0RG7070', '0RG7071', '0RG707J', '0RG70A0', '0RG70A1', '0RG70AJ', '0RG70J0', '0RG70J1', '0RG70JJ', '0RG70K0', '0RG70K1', '0RG70KJ', '0RG70Z0', '0RG70Z1', '0RG70ZJ', '0RG8070', '0RG8071', '0RG807J', '0RG80A0', '0RG80A1', '0RG80AJ', '0RG80J0', '0RG80J1', '0RG80JJ', '0RG80K0', '0RG80K1', '0RG80KJ', '0RG80Z0', '0RG80Z1', '0RG80ZJ', '0RGA070', '0RGA071', '0RGA07J', '0RGA0A0', '0RGA0A1', '0RGA0AJ', '0RGA0J0', '0RGA0J1', '0RGA0JJ', '0RGA0K0', '0RGA0K1', '0RGA0KJ', '0RGA0Z0', '0RGA0Z1', '0RGA0ZJ', '0SG0070', '0SG0071', '0SG007J', '0SG00A0', '0SG00A1', '0SG00AJ', '0SG00J0', '0SG00J1', '0SG00JJ', '0SG00K0', '0SG00K1', '0SG00KJ', '0SG00Z0', '0SG00Z1', '0SG00ZJ', '0SG1070', '0SG1071', '0SG107J', '0SG10A0', '0SG10A1', '0SG10AJ', '0SG10J0', '0SG10J1', '0SG10JJ', '0SG10K0', '0SG10K1', '0SG10KJ', '0SG10Z0', '0SG10Z1', '0SG10ZJ', '0SG3070', '0SG3071', '0SG307J', '0SG30A0', '0SG30A1', '0SG30AJ', '0SG30J0', '0SG30J1', '0SG30JJ', '0SG30K0', '0SG30K1', '0SG30KJ', '0SG30Z0', '0SG30Z1', '0SG30ZJ', '81', '81.01', '81.02', '81.03', '81.04', '81.05', '81.06', '81.07', '81.08', '81.09', '81.3', '81.35', '81.36', '81.37', '81.38', '81.39', '81.61', '81.62', '81.63', '81.64', '84.51', '0WU80JZ', '0WU84JZ', '34.74', '22532', '22533', '22548', '22551', '22554', '22556', '22558', '22586', '22590', '22595', '22600', '22610', '22612', '22614', '22630', '22633', '22634', '22800', '22802', '22804', '22808', '22810', '22812', '22818', '22819', '22830', '22840', '22841', '22842', '22843', '22844', '22845', '22846', '22847', '22848', '22849', '22850', '22852', '22853', '22854', '22855', '22856', '22857', '22858', '22859', '22861', '22862', '22864', '22865', '22867', '22868', '22869', '22870', '21740', '21742', '21743')
-GROUP BY z.PERSON_ID, z.ENC_ID, z.PX, z.PROVIDER,
-        z.PERFORMINGPROVIDER,
-        d.SPECIALTY,
-        d.SPECIALTY2,
-        d.SPECIALTY3,
-        d.SPECIALTY4,
-        d.PROVIDER_TYPE, z.PROCDATE, YEAR(z.ADATE)"
-)
+# tab3a <- odbc::dbGetQuery(con,
+#        "SELECT
+#         DISTINCT z.ENC_ID,
+#         z.PERSON_ID,
+#         z.PX,
+#         z.PROVIDER,
+#         z.PERFORMINGPROVIDER,
+#         d.SPECIALTY,
+#         d.SPECIALTY2,
+#         d.SPECIALTY3,
+#         d.SPECIALTY4,
+#         d.PROVIDER_TYPE,
+#        MAX(CASE
+#                WHEN z.PX IN('0RG4070', '0RG4071', '0RG407J', '0RG40A0', '0RG40A1', '0RG40AJ', '0RG40J0', '0RG40J1', '0RG40JJ', '0RG40K0', '0RG40K1', '0RG40KJ', '0RG40Z0', '0RG40Z1', '0RG40ZJ', '0RG6070', '0RG6071', '0RG607J', '0RG60A0', '0RG60A1', '0RG60AJ', '0RG60J0', '0RG60J1', '0RG60JJ', '0RG60K0', '0RG60K1', '0RG60KJ', '0RG60Z0', '0RG60Z1', '0RG60ZJ', '0RG7070', '0RG7071', '0RG707J', '0RG70A0', '0RG70A1', '0RG70AJ', '0RG70J0', '0RG70J1', '0RG70JJ', '0RG70K0', '0RG70K1', '0RG70KJ', '0RG70Z0', '0RG70Z1', '0RG70ZJ', '0RG8070', '0RG8071', '0RG807J', '0RG80A0', '0RG80A1', '0RG80AJ', '0RG80J0', '0RG80J1', '0RG80JJ', '0RG80K0', '0RG80K1', '0RG80KJ', '0RG80Z0', '0RG80Z1', '0RG80ZJ', '0RGA070', '0RGA071', '0RGA07J', '0RGA0A0', '0RGA0A1', '0RGA0AJ', '0RGA0J0', '0RGA0J1', '0RGA0JJ', '0RGA0K0', '0RGA0K1', '0RGA0KJ', '0RGA0Z0', '0RGA0Z1', '0RGA0ZJ', '0SG0070', '0SG0071', '0SG007J', '0SG00A0', '0SG00A1', '0SG00AJ', '0SG00J0', '0SG00J1', '0SG00JJ', '0SG00K0', '0SG00K1', '0SG00KJ', '0SG00Z0', '0SG00Z1', '0SG00ZJ', '0SG1070', '0SG1071', '0SG107J', '0SG10A0', '0SG10A1', '0SG10AJ', '0SG10J0', '0SG10J1', '0SG10JJ', '0SG10K0', '0SG10K1', '0SG10KJ', '0SG10Z0', '0SG10Z1', '0SG10ZJ', '0SG3070', '0SG3071', '0SG307J', '0SG30A0', '0SG30A1', '0SG30AJ', '0SG30J0', '0SG30J1', '0SG30JJ', '0SG30K0', '0SG30K1', '0SG30KJ', '0SG30Z0', '0SG30Z1', '0SG30ZJ', '81', '81.01', '81.02', '81.03', '81.04', '81.05', '81.06', '81.07', '81.08', '81.09', '81.3', '81.35', '81.36', '81.37', '81.38', '81.39', '81.61', '81.62', '81.63', '81.64', '84.51', '22532', '22533', '22548', '22551', '22554', '22556', '22558', '22586', '22590', '22595', '22600', '22610', '22612', '22614', '22630', '22633', '22634', '22800', '22802', '22804', '22808', '22810', '22812', '22818', '22819', '22830', '22840', '22841', '22842', '22843', '22844', '22845', '22846', '22847', '22848', '22849', '22850', '22852', '22853', '22854', '22855', '22856', '22857', '22858', '22859', '22861', '22862', '22864', '22865', '22867', '22868', '22869', '22870')
+#                THEN 1 ELSE 0 END) AS spine,
+#       MAX(CASE
+#                WHEN z.PX IN('0WU80JZ', '0WU84JZ', '34.74', '21740', '21742', '21743')
+#                THEN 1 ELSE 0 END) AS pectus,
+#       z.PROCDATE,
+#       YEAR(z.ADATE) as px_date
+# FROM
+#          DEMOGRAPHICS a
+#          INNER JOIN [PROCEDURES] z
+#               ON z.PERSON_ID = a.PERSON_ID
+#          LEFT JOIN [PROVIDER_SPECIALTY] d
+#               ON z.PERFORMINGPROVIDER = d.PROVIDER
+#     WHERE  z.ADATE >= '01/01/2011'
+#            AND DATEDIFF(YY, a.BIRTH_DATE, z.ADATE) - CASE
+#                       WHEN DATEADD(YY, DATEDIFF(YY, a.BIRTH_DATE, z.ADATE), a.BIRTH_DATE) > z.ADATE
+#                       THEN 1
+#                       ELSE 0
+#                     END >= 10
+#            AND DATEDIFF(YY, a.BIRTH_DATE, z.ADATE) - CASE
+#                       WHEN DATEADD(YY, DATEDIFF(YY, a.BIRTH_DATE, z.ADATE), a.BIRTH_DATE) > z.ADATE
+#                       THEN 1
+#                       ELSE 0
+#                     END <= 26
+#            AND 
+#                z.PX IN('0RG4070', '0RG4071', '0RG407J', '0RG40A0', '0RG40A1', '0RG40AJ', '0RG40J0', '0RG40J1', '0RG40JJ', '0RG40K0', '0RG40K1', '0RG40KJ', '0RG40Z0', '0RG40Z1', '0RG40ZJ', '0RG6070', '0RG6071', '0RG607J', '0RG60A0', '0RG60A1', '0RG60AJ', '0RG60J0', '0RG60J1', '0RG60JJ', '0RG60K0', '0RG60K1', '0RG60KJ', '0RG60Z0', '0RG60Z1', '0RG60ZJ', '0RG7070', '0RG7071', '0RG707J', '0RG70A0', '0RG70A1', '0RG70AJ', '0RG70J0', '0RG70J1', '0RG70JJ', '0RG70K0', '0RG70K1', '0RG70KJ', '0RG70Z0', '0RG70Z1', '0RG70ZJ', '0RG8070', '0RG8071', '0RG807J', '0RG80A0', '0RG80A1', '0RG80AJ', '0RG80J0', '0RG80J1', '0RG80JJ', '0RG80K0', '0RG80K1', '0RG80KJ', '0RG80Z0', '0RG80Z1', '0RG80ZJ', '0RGA070', '0RGA071', '0RGA07J', '0RGA0A0', '0RGA0A1', '0RGA0AJ', '0RGA0J0', '0RGA0J1', '0RGA0JJ', '0RGA0K0', '0RGA0K1', '0RGA0KJ', '0RGA0Z0', '0RGA0Z1', '0RGA0ZJ', '0SG0070', '0SG0071', '0SG007J', '0SG00A0', '0SG00A1', '0SG00AJ', '0SG00J0', '0SG00J1', '0SG00JJ', '0SG00K0', '0SG00K1', '0SG00KJ', '0SG00Z0', '0SG00Z1', '0SG00ZJ', '0SG1070', '0SG1071', '0SG107J', '0SG10A0', '0SG10A1', '0SG10AJ', '0SG10J0', '0SG10J1', '0SG10JJ', '0SG10K0', '0SG10K1', '0SG10KJ', '0SG10Z0', '0SG10Z1', '0SG10ZJ', '0SG3070', '0SG3071', '0SG307J', '0SG30A0', '0SG30A1', '0SG30AJ', '0SG30J0', '0SG30J1', '0SG30JJ', '0SG30K0', '0SG30K1', '0SG30KJ', '0SG30Z0', '0SG30Z1', '0SG30ZJ', '81', '81.01', '81.02', '81.03', '81.04', '81.05', '81.06', '81.07', '81.08', '81.09', '81.3', '81.35', '81.36', '81.37', '81.38', '81.39', '81.61', '81.62', '81.63', '81.64', '84.51', '0WU80JZ', '0WU84JZ', '34.74', '22532', '22533', '22548', '22551', '22554', '22556', '22558', '22586', '22590', '22595', '22600', '22610', '22612', '22614', '22630', '22633', '22634', '22800', '22802', '22804', '22808', '22810', '22812', '22818', '22819', '22830', '22840', '22841', '22842', '22843', '22844', '22845', '22846', '22847', '22848', '22849', '22850', '22852', '22853', '22854', '22855', '22856', '22857', '22858', '22859', '22861', '22862', '22864', '22865', '22867', '22868', '22869', '22870', '21740', '21742', '21743')
+# GROUP BY z.PERSON_ID, z.ENC_ID, z.PX, z.PROVIDER,
+#         z.PERFORMINGPROVIDER,
+#         d.SPECIALTY,
+#         d.SPECIALTY2,
+#         d.SPECIALTY3,
+#         d.SPECIALTY4,
+#         d.PROVIDER_TYPE, z.PROCDATE, YEAR(z.ADATE)"
+# )
+# 
+# 
+# tab3a2 <- tab3a %>%
+#   left_join(., specialties, by = "SPECIALTY") %>% 
+#   dplyr::filter(PROVIDER_TYPE %in% c(61, 25, 77, 999)) %>%  # Filter to only include physicians, residents, fellows and unknowns
+#   dplyr::filter(ENC_ID %in% tab1b2$ENC_ID) %>% #Only include valid encounter ids
+#   dplyr::filter(!duplicated(ENC_ID)) # Deduplicate encounter ID
+
+# Removed PX and procdate from below to get
 
 tab3a_prov <- odbc::dbGetQuery(con,
        "SELECT
         z.ENC_ID,
         z.PERSON_ID,
-        z.PX,
         z.PROVIDER,
         z.PERFORMINGPROVIDER,
         d.SPECIALTY,
@@ -811,14 +820,18 @@ tab3a_prov <- odbc::dbGetQuery(con,
         d.SPECIALTY3,
         d.SPECIALTY4,
         d.PROVIDER_TYPE,
+        d.PROVIDER_BIRTH_YEAR,
+        d.YEAR_GRADUATED,
+        d.PROVIDER_RACE,
+        d.PROVIDER_HISPANIC,
        MAX(CASE
                WHEN z.PX IN('0RG4070', '0RG4071', '0RG407J', '0RG40A0', '0RG40A1', '0RG40AJ', '0RG40J0', '0RG40J1', '0RG40JJ', '0RG40K0', '0RG40K1', '0RG40KJ', '0RG40Z0', '0RG40Z1', '0RG40ZJ', '0RG6070', '0RG6071', '0RG607J', '0RG60A0', '0RG60A1', '0RG60AJ', '0RG60J0', '0RG60J1', '0RG60JJ', '0RG60K0', '0RG60K1', '0RG60KJ', '0RG60Z0', '0RG60Z1', '0RG60ZJ', '0RG7070', '0RG7071', '0RG707J', '0RG70A0', '0RG70A1', '0RG70AJ', '0RG70J0', '0RG70J1', '0RG70JJ', '0RG70K0', '0RG70K1', '0RG70KJ', '0RG70Z0', '0RG70Z1', '0RG70ZJ', '0RG8070', '0RG8071', '0RG807J', '0RG80A0', '0RG80A1', '0RG80AJ', '0RG80J0', '0RG80J1', '0RG80JJ', '0RG80K0', '0RG80K1', '0RG80KJ', '0RG80Z0', '0RG80Z1', '0RG80ZJ', '0RGA070', '0RGA071', '0RGA07J', '0RGA0A0', '0RGA0A1', '0RGA0AJ', '0RGA0J0', '0RGA0J1', '0RGA0JJ', '0RGA0K0', '0RGA0K1', '0RGA0KJ', '0RGA0Z0', '0RGA0Z1', '0RGA0ZJ', '0SG0070', '0SG0071', '0SG007J', '0SG00A0', '0SG00A1', '0SG00AJ', '0SG00J0', '0SG00J1', '0SG00JJ', '0SG00K0', '0SG00K1', '0SG00KJ', '0SG00Z0', '0SG00Z1', '0SG00ZJ', '0SG1070', '0SG1071', '0SG107J', '0SG10A0', '0SG10A1', '0SG10AJ', '0SG10J0', '0SG10J1', '0SG10JJ', '0SG10K0', '0SG10K1', '0SG10KJ', '0SG10Z0', '0SG10Z1', '0SG10ZJ', '0SG3070', '0SG3071', '0SG307J', '0SG30A0', '0SG30A1', '0SG30AJ', '0SG30J0', '0SG30J1', '0SG30JJ', '0SG30K0', '0SG30K1', '0SG30KJ', '0SG30Z0', '0SG30Z1', '0SG30ZJ', '81', '81.01', '81.02', '81.03', '81.04', '81.05', '81.06', '81.07', '81.08', '81.09', '81.3', '81.35', '81.36', '81.37', '81.38', '81.39', '81.61', '81.62', '81.63', '81.64', '84.51', '22532', '22533', '22548', '22551', '22554', '22556', '22558', '22586', '22590', '22595', '22600', '22610', '22612', '22614', '22630', '22633', '22634', '22800', '22802', '22804', '22808', '22810', '22812', '22818', '22819', '22830', '22840', '22841', '22842', '22843', '22844', '22845', '22846', '22847', '22848', '22849', '22850', '22852', '22853', '22854', '22855', '22856', '22857', '22858', '22859', '22861', '22862', '22864', '22865', '22867', '22868', '22869', '22870')
                THEN 1 ELSE 0 END) AS spine,
       MAX(CASE
                WHEN z.PX IN('0WU80JZ', '0WU84JZ', '34.74', '21740', '21742', '21743')
                THEN 1 ELSE 0 END) AS pectus,
-      z.PROCDATE,
       YEAR(z.ADATE) as px_date
+
 FROM
          DEMOGRAPHICS a
          INNER JOIN [PROCEDURES] z
@@ -837,842 +850,79 @@ FROM
                       ELSE 0
                     END <= 26
            AND 
-               z.PERFORMINGPROVIDER IN('E_13066', 'E_13066', 'E_13066', 'E_13066', 'E_13066', 'E_13066', 'E_13066', '088377', 'E_13066', '088377', 'E_13066', 'E_13066', 'E_13066', 'E_1526', 'E_1526', 'E_1322', 'E_1322', 'E_1322', 'E_1322', 'E_1322', 'E_13066', 'E_13066', 'E_13066', 'E_13066', 'E_1322', 'E_1322', 'E_1322', 'E_1322', 'E_1322', 'E_13066', 'E_18112', 'E_13066', 'E_18112', 'E_13066', 'E_18112', '116038', '116038', '158352', '158352', '158352', '145318', '145466', '145466', '145466', '145466', '145466', '145466', '145466', '123364', '123364', '130666', '130666', '169649', '169649', '169649', '125401', '125401', '125401', '086330', '086330', '086330', '086330', '086330', 'E_1322', 'E_1322', '132274', '132274', 'E_13066', 'E_13066', '113399', '113399', '073361', '073361', '073361', '116038', '116038', '116038', '116038', '116038', '130666', '123364', '123364', '123364', '123364', '133595', '133595', '133595', '145318', '140848', '140848', '140848', '125401', '125401', '125401', 'E_13066', 'E_13066', 'E_13066', 'E_13066', '125401', '125401', '125401', '125401', '124586', '124586', '124586', 'E_13066', 'E_13066', 'E_13066', 'E_13066', '073361', '073361', '073361', '128850', '128850', '124453', '124453', '158352', '158352', '158352', '158352', '158352', '100305', '100305', '141531', '141531', '141531', '132274', '132274', '132274', '046771', '046771', '046771', 'E_13066', '133322', '133322', '133322', '125401', '125401', '125401', '141531', '141531', '141531', '070979', '070979', '130666', '130666', '130666', '130666', '130666', '130666', '123364', '124453', '124453', '158378', '158378', '158378', '158378', '131375', '131375', '131375', '133595', '133595', '133322', '133322', '086330', '086330', '086330', '086330', '086330', 'E_1526', 'E_1526', 'E_1526', '133322', '133322', '156604', '156604', 'E_13066', '088377', '088377', '088377', '141531', '141531', '079038', '079038', '079038', '079038', '079038', '077321', '157230', '157230', '100305', '100305', '100305', '100305', '100305', '141440', '141440', '133322', '133322', '073411', '073411', '073411', '133595', '133595', '128850', '128850', '156604', '156604', '156604', '156604', '156604', '156604', '128850', '128850', 'E_1526', 'E_1526', 'E_1526', 'E_1526', 'E_1526', '123364', '123364', '123364', '158378', '158378', '124453', '124453', '124453', '156604', '156604', '141465', '141465', '141465', '124453', '124453', '124453', '124453', '128850', '128850', '128850', '128850', '128850', '146787', '146787', '119578', '119578', '147918', '147918', '147918', '124586', '086330', '086330', '086330', '153767', '153767', '110676', '110676', '111153', '111153') 
+               z.PERFORMINGPROVIDER IN('E_3465', 'E_13066', 'E_13066', 'E_13066', '088377', 'E_13066', 'E_13066', 'E_14465', 'E_1526', 'E_1526', 'E_4104', 'E_5277', 'E_1322', 'E_13066', 'E_1322', 'E_13066', '116038', '158352', '145318', '145466', '123364', '130666', '162974', '169649', '125401', '086330', 'E_1322', '132274', 'E_13066', '113399', '073361', '116038', '123364', '133595', '144576', '145318', '140848', '125401', '144576', 'E_13066', '125401', '124586', 'E_13066', '073361', '128850', '124453', '158352', '100305', '141531', '162974', '132274', '046771', 'E_13066', 'E_4046', '133322', '125401', '141531', '070979', '135863', '123364', '124453', '158378', '131375', '133595', '133322', '086330', 'E_1526', '133322', '156604', 'E_13066', '088377', '162974', '141531', '079038', '077321', '157230', '100305', '100305', '141440', '133322', '073411', '133595', '128850', '156604', 'E_3844', '144576', '128850', 'E_1526', '123364', '007047', '158378', '124453', '141481', '135863', '156604', '141465', '124453', '124453', '128850', '146787', '119578', '147918', '124586', 'E_3661', '086330', '153767', '110676', '111153') 
             AND
                z.PX IN('0RG4070', '0RG4071', '0RG407J', '0RG40A0', '0RG40A1', '0RG40AJ', '0RG40J0', '0RG40J1', '0RG40JJ', '0RG40K0', '0RG40K1', '0RG40KJ', '0RG40Z0', '0RG40Z1', '0RG40ZJ', '0RG6070', '0RG6071', '0RG607J', '0RG60A0', '0RG60A1', '0RG60AJ', '0RG60J0', '0RG60J1', '0RG60JJ', '0RG60K0', '0RG60K1', '0RG60KJ', '0RG60Z0', '0RG60Z1', '0RG60ZJ', '0RG7070', '0RG7071', '0RG707J', '0RG70A0', '0RG70A1', '0RG70AJ', '0RG70J0', '0RG70J1', '0RG70JJ', '0RG70K0', '0RG70K1', '0RG70KJ', '0RG70Z0', '0RG70Z1', '0RG70ZJ', '0RG8070', '0RG8071', '0RG807J', '0RG80A0', '0RG80A1', '0RG80AJ', '0RG80J0', '0RG80J1', '0RG80JJ', '0RG80K0', '0RG80K1', '0RG80KJ', '0RG80Z0', '0RG80Z1', '0RG80ZJ', '0RGA070', '0RGA071', '0RGA07J', '0RGA0A0', '0RGA0A1', '0RGA0AJ', '0RGA0J0', '0RGA0J1', '0RGA0JJ', '0RGA0K0', '0RGA0K1', '0RGA0KJ', '0RGA0Z0', '0RGA0Z1', '0RGA0ZJ', '0SG0070', '0SG0071', '0SG007J', '0SG00A0', '0SG00A1', '0SG00AJ', '0SG00J0', '0SG00J1', '0SG00JJ', '0SG00K0', '0SG00K1', '0SG00KJ', '0SG00Z0', '0SG00Z1', '0SG00ZJ', '0SG1070', '0SG1071', '0SG107J', '0SG10A0', '0SG10A1', '0SG10AJ', '0SG10J0', '0SG10J1', '0SG10JJ', '0SG10K0', '0SG10K1', '0SG10KJ', '0SG10Z0', '0SG10Z1', '0SG10ZJ', '0SG3070', '0SG3071', '0SG307J', '0SG30A0', '0SG30A1', '0SG30AJ', '0SG30J0', '0SG30J1', '0SG30JJ', '0SG30K0', '0SG30K1', '0SG30KJ', '0SG30Z0', '0SG30Z1', '0SG30ZJ', '81', '81.01', '81.02', '81.03', '81.04', '81.05', '81.06', '81.07', '81.08', '81.09', '81.3', '81.35', '81.36', '81.37', '81.38', '81.39', '81.61', '81.62', '81.63', '81.64', '84.51', '0WU80JZ', '0WU84JZ', '34.74', '22532', '22533', '22548', '22551', '22554', '22556', '22558', '22586', '22590', '22595', '22600', '22610', '22612', '22614', '22630', '22633', '22634', '22800', '22802', '22804', '22808', '22810', '22812', '22818', '22819', '22830', '22840', '22841', '22842', '22843', '22844', '22845', '22846', '22847', '22848', '22849', '22850', '22852', '22853', '22854', '22855', '22856', '22857', '22858', '22859', '22861', '22862', '22864', '22865', '22867', '22868', '22869', '22870', '21740', '21742', '21743')
 GROUP BY z.ENC_ID,
         z.PERSON_ID,
-        z.PX,
         z.PROVIDER,
         z.PERFORMINGPROVIDER,
         d.SPECIALTY,
         d.SPECIALTY2,
         d.SPECIALTY3,
         d.SPECIALTY4,
-        d.PROVIDER_TYPE, z.PROCDATE, YEAR(z.ADATE)"
+        d.PROVIDER_TYPE, 
+        d.PROVIDER_BIRTH_YEAR,
+        d.YEAR_GRADUATED,
+        d.PROVIDER_RACE,
+        d.PROVIDER_HISPANIC, YEAR(z.ADATE)"
 )
 
 tab3a2_prov <- tab3a_prov %>% 
-  dplyr::filter(!duplicated(ENC_ID)) %>% 
-  group_by(PERFORMINGPROVIDER, px_date) %>% 
-  summarise(n_procs = n(), spine = sum(spine), pectus = sum(pectus))
-
-tab3a2 <- tab3a %>%
   left_join(., specialties, by = "SPECIALTY") %>% 
-  dplyr::filter(PROVIDER_TYPE %in% c(61, 25, 77, 999)) %>% 
-  dplyr::filter(!duplicated(ENC_ID))
-
-```
-
-
-```{r tab2_res}
-tab2_lab_null <- odbc::dbGetQuery(con, 
-  "SELECT SUM(CASE WHEN TEST_TYPE IS NULL THEN 1 ELSE 0 END) as TEST_TYPE,
-   SUM(CASE WHEN BATTERY_CD IS NULL THEN 1 ELSE 0 END) as BATTERY_CD,
-   SUM(CASE WHEN LOINC IS NULL THEN 1 ELSE 0 END) as LOINC,
-   SUM(CASE WHEN LOCAL_CD IS NULL THEN 1 ELSE 0 END) as LOCAL_CD,
-   SUM(CASE WHEN RESULT_NUM IS NULL THEN 1 ELSE 0 END) as RESULT_NUM,
-   SUM(CASE WHEN RESULT_UNIT IS NULL THEN 1 ELSE 0 END) as RESULT_UNIT,
-   SUM(CASE WHEN SPECIMEN_SOURCE IS NULL THEN 1 ELSE 0 END) as SPECIMEN_SOURCE
-      from lab_results")
-
-tab2_lab_null2 <- data.frame(table = rep("LAB_RESULTS", ncol(tab2_lab_null)), var = names(tab2_lab_null), records_null = t(tab2_lab_null)[,1])
-row.names(tab2_lab_null2) <- NULL
-
-tab2_rx_null <- odbc::dbGetQuery(con, 
-  "SELECT SUM(CASE WHEN GENERIC_MED_NAME IS NULL THEN 1 ELSE 0 END) as GENERIC_MED_NAME,
-   SUM(CASE WHEN RX_DAYS_SUPPLY IS NULL THEN 1 ELSE 0 END) as RX_DAYS_SUPPLY,
-   SUM(CASE WHEN RX_END_DATE IS NULL THEN 1 ELSE 0 END) as RX_END_DATE,
-   SUM(CASE WHEN RX_START_DATE IS NULL THEN 1 ELSE 0 END) as RX_START_DATE,
-   SUM(CASE WHEN RX_QUANTITY IS NULL THEN 1 ELSE 0 END) as RX_QUANTITY,
-   SUM(CASE WHEN RX_QUANTITY_NUM IS NULL THEN 1 ELSE 0 END) as RX_QUANTITY_NUM,
-   SUM(CASE WHEN RX_QUANTITY_UNIT IS NULL THEN 1 ELSE 0 END) as RX_QUANTITY_UNIT,
-   SUM(CASE WHEN RX_REFILLS IS NULL THEN 1 ELSE 0 END) as RX_REFILLS,
-   SUM(CASE WHEN RXMD IS NULL THEN 1 ELSE 0 END) as RXMD,
-   SUM(CASE WHEN RXNORM IS NULL THEN 1 ELSE 0 END) as RXNORM
-      from prescribing")
-
-tab2_rx_null2 <- data.frame(table = rep("PRESCRIBING", ncol(tab2_rx_null)), var = names(tab2_rx_null), records_null = t(tab2_rx_null)[,1])
-row.names(tab2_rx_null2) <- NULL
-
-tab2_px_null <- odbc::dbGetQuery(con, 
-  "SELECT SUM(CASE WHEN PROVIDER IS NULL THEN 1 ELSE 0 END) as PROVIDER,
-   SUM(CASE WHEN ENCTYPE IS NULL THEN 1 ELSE 0 END) as ENCTYPE,
-   SUM(CASE WHEN PXCNT IS NULL THEN 1 ELSE 0 END) as PXCNT
-      from procedures")
-
-tab2_px_null2 <- data.frame(table = rep("PROCEDURES", ncol(tab2_px_null)), var = names(tab2_px_null), records_null = t(tab2_px_null)[,1])
-row.names(tab2_px_null2) <- NULL
-
-tab2_ps_null <- odbc::dbGetQuery(con, 
-  "SELECT SUM(CASE WHEN SPECIALTY IS NULL THEN 1 ELSE 0 END) as SPECIALTY,
-   SUM(CASE WHEN PROVIDER_TYPE IS NULL THEN 1 ELSE 0 END) as PROVIDER_TYPE,
-   SUM(CASE WHEN PROVIDER_BIRTH_YEAR IS NULL THEN 1 ELSE 0 END) as PROVIDER_BIRTH_YEAR,
-   SUM(CASE WHEN PROVIDER_GENDER IS NULL THEN 1 ELSE 0 END) as PROVIDER_GENDER,
-   SUM(CASE WHEN PROVIDER_RACE IS NULL THEN 1 ELSE 0 END) as PROVIDER_RACE,
-   SUM(CASE WHEN PROVIDER_HISPANIC IS NULL THEN 1 ELSE 0 END) as PROVIDER_HISPANIC
-      from provider_specialty")
-
-tab2_ps_null2 <- data.frame(table = rep("PROVIDER_SPECIALTY", ncol(tab2_ps_null)), var = names(tab2_ps_null), records_null = t(tab2_ps_null)[,1])
-row.names(tab2_ps_null2) <- NULL
-
-tab2_sh_null <- odbc::dbGetQuery(con, 
-  "SELECT SUM(CASE WHEN TOBACCO_USER IS NULL THEN 1 ELSE 0 END) as TOBACCO_USER,
-   SUM(CASE WHEN ALCOHOL_USER IS NULL THEN 1 ELSE 0 END) as ALCOHOL_USER,
-   SUM(CASE WHEN ILL_DRUG_USER IS NULL THEN 1 ELSE 0 END) as ILL_DRUG_USER,
-   SUM(CASE WHEN ENC_ID IS NULL THEN 1 ELSE 0 END) as ENC_ID
-      from social_history")
-
-tab2_sh_null2 <- data.frame(table = rep("SOCIAL_HISTORY", ncol(tab2_sh_null)), var = names(tab2_sh_null), records_null = t(tab2_sh_null)[,1])
-row.names(tab2_sh_null2) <- NULL
-
-tab2_null <- bind_rows(tab2_lab_null2, tab2_rx_null2, tab2_px_null2, tab2_ps_null2, tab2_sh_null2) %>% 
+  dplyr::filter(!duplicated(ENC_ID)) %>% 
+  group_by(Description, px_date) %>% 
   mutate(
-    pct_rec = ifelse(table == "LAB_RESULTS", (records_null / tab1_lab$nrows * 100), 
-                     ifelse(table == "PRESCRIBING", (records_null / tab1_rx$nrows * 100), 
-                             ifelse(table == "PROCEDURES", (records_null / tab1_px$nrows * 100), 
-                                     ifelse(table == "PROVIDER_SPECIALTY", (records_null / tab1_ps$nrows * 100), 
-                                             ifelse(table == "SOCIAL_HISTORY", (records_null / tab1_sh$nrows * 100), NA)))))
-  )
-
-tab2_lab_uk <- odbc::dbGetQuery(con, 
-  "SELECT SUM(CASE WHEN TEST_TYPE = 'Unknown' THEN 1 ELSE 0 END) as TEST_TYPE
-      from lab_results")
-
-tab2_lab_uk2 <- data.frame(table = rep("LAB_RESULTS", ncol(tab2_lab_uk)), var = names(tab2_lab_uk), records_uk = t(tab2_lab_uk)[,1])
-row.names(tab2_lab_uk2) <- NULL
-
-
-tab2_ps_uk <- odbc::dbGetQuery(con, 
-  "SELECT SUM(CASE WHEN SPECIALTY = 'UNK' THEN 1 ELSE 0 END) as SPECIALTY,
-   SUM(CASE WHEN PROVIDER_TYPE = 999 THEN 1 ELSE 0 END) as PROVIDER_TYPE,
-   SUM(CASE WHEN PROVIDER_GENDER = 'U' THEN 1 ELSE 0 END) as PROVIDER_GENDER,
-   SUM(CASE WHEN PROVIDER_RACE = 'U' THEN 1 ELSE 0 END) as PROVIDER_RACE,
-   SUM(CASE WHEN PROVIDER_HISPANIC = 'U' THEN 1 ELSE 0 END) as PROVIDER_HISPANIC
-      from provider_specialty")
-
-tab2_ps_uk2 <- data.frame(table = rep("PROVIDER_SPECIALTY", ncol(tab2_ps_uk)), var = names(tab2_ps_uk), records_uk = t(tab2_ps_uk)[,1])
-row.names(tab2_ps_uk2) <- NULL
-
-tab2_sh_uk <- odbc::dbGetQuery(con, 
-  "SELECT SUM(CASE WHEN TOBACCO_USER = 'U' THEN 1 ELSE 0 END) as TOBACCO_USER,
-   SUM(CASE WHEN ALCOHOL_USER = 'U' THEN 1 ELSE 0 END) as ALCOHOL_USER,
-   SUM(CASE WHEN ILL_DRUG_USER = 'U' THEN 1 ELSE 0 END) as ILL_DRUG_USER
-      from social_history")
-
-tab2_sh_uk2 <- data.frame(table = rep("SOCIAL_HISTORY", ncol(tab2_sh_uk)), var = names(tab2_sh_uk), records_uk = t(tab2_sh_uk)[,1])
-row.names(tab2_sh_uk2) <- NULL
-
-tab2_uk <- bind_rows(tab2_lab_uk2, tab2_ps_uk2, tab2_sh_uk2) %>% 
-  mutate(
-    pct_rec_uk = ifelse(table == "LAB_RESULTS", (records_uk / tab1_lab$nrows * 100), 
-                                     ifelse(table == "PROVIDER_SPECIALTY", (records_uk / tab1_ps$nrows * 100), 
-                                             ifelse(table == "SOCIAL_HISTORY", (records_uk / tab1_sh$nrows * 100), NA)))
-  )
-
-tab2_all <- left_join(tab2_null, tab2_uk, by = c("table", "var"))
-
-```
-
-```{r tab2_disp, results="asis"}
-
-kable(tab2_all, col.names = c("Table", "Variable", "Null Records", "Percent of Records Null", "Unknown Records", "Percent of Records Unknown"), digits = 2, format.args = list(big.mark = ","))
-```
-
-##Examination of the LAB_RESULTS Table 
-
-The following tables explore the contents of the LAB_RESULTS table with a focus on trends over time,CHORDS priority lab results, and most common types of lab tests. 
-
-
-##Table 3: Annual Trends in the Total Number of Recorded Lab Tests, the Number of Patients Tested and the Percent Change from the Previous Year, by Calendar Year
-
-This table displays trends in the number of recorded lab tests and the number of unique patients tested by year. The percent change in both count values is included to identify unexpected temporal fluctuations. 
-
-```{r tab3_res}
-
-tab3 <- odbc::dbGetQuery(con, 
-  "select year(result_dt) as year,
-    count(*) as nrows, 
-	  count(distinct person_id) as npats
-	  from lab_results
-	    group by year(result_dt)
-      order by year(result_dt)")
-
-tab3 <- tab3 %>% 
-  mutate(
-    ptc_rec = if_else(is.na(nrows / dplyr::lag(nrows)), "--", paste0(round(nrows / dplyr::lag(nrows) * 100, 0), "%")),
-    ptc_pat = if_else(is.na(npats / dplyr::lag(npats)), "--", paste0(round(npats / dplyr::lag(npats) * 100, 0), "%"))
-  )
-
-tab3$year <- as.character(tab3$year)
-
-tab3_ord <- tab3[, c(1,2,4,3,5)]
-
-```
-
-```{r tab3_disp, results="asis"}
-
-kable(tab3_ord, col.names = c("Year", "Number of Recorded Lab Tests", "Percent Change From Previous Year", "Number of Patients Tested", "Percent Change From Previous Year"), format.args = list(big.mark = ","))
-
-```
-
-
-##Table 4: CHORDS Priority Lab Tests - Number/Percentage of Tests, Number/Percentage of Patients Tested, Mean Result Values and Result Ranges, by Select TEST_TYPE Values 
-
-This table illustrates the number (and percent) of priority lab test records including the percent of all lab test records , as well as the number (and percent)  of unique patients tested for select TEST_TYPE values. 
-
-```{r tab4_res}
-
-tab4 <- odbc::dbGetQuery(con, 
-  "select test_type,
-    count(*) as nrows, 
-	  count(distinct person_id) as npats,
-    avg(result_num) as avg_resval,
-    min(result_num) as min_resval,
-    max(result_num) as max_resval
-	  from lab_results
-	    group by test_type
-      order by test_type")
-
-tab4_tot <- data.frame(test_type = "Total", nrows = tab1_lab$nrows, npats = tab1_lab$npats, avg_resval = NA, min_resval = NA, max_resval = NA)
-tab4 <- tab4 %>% 
-  mutate(
-    pct_rec = round(nrows / tab1_lab$nrows * 100, 1) ,
-    pct_pat = round(npats / tab1_lab$npats * 100, 1)
+    cohort = if_else(ENC_ID %in% tab1b2$ENC_ID, 1, 0)
   ) %>% 
-  bind_rows(., tab4_tot)
+  summarise(n_procs = sum(cohort), spine = sum(spine), pectus = sum(pectus)) %>% 
+  dplyr::select(Year = px_date, Provider_Specialty = Description, Cohort_PX = n_procs, spine, pectus)
 
-tab4$test_type[1] <- "UNKNOWN TEST TYPE"
-  
-tab4_ord <- tab4[, c(1,2,7,3,8,4,5,6)]  
+
 ```
 
-```{r tab4_disp, results="asis"}
-kable(tab4_ord, col.names = c("Test Type", "Number of Recorded Lab Tests", "Percentage of All Recorded Tests", "Number of Unique Patients Tested", "Percentage of All Patients", "Mean Result Value", "Minimum Result Value", "Maximum Result Value"), digits = 2, format.args = list(big.mark = ",")) 
+This table contains information only for physicians, not fellows, residents, or other providers. Of the `r n_distinct(tab1b2$PERSON_ID)` total patients, `r n_distinct(tab3a_prov$PERSON_ID)` had provider data that was used to create the table below.
+
+```{r tab3a_out, results="asis"}
+
+knitr::kable(tab3a2_prov, col.names = c("Year", "Provider Specialty", "Cohort Procedures", "Total Spine Procedures", "Total Pectus Procedures"))
+
 ```
 
-##Figures 1a-1i: Temporal Trends in the Number of CHORDS Priority Lab Tests, by Select TEST_TYPE Values
+```{r tab3b_data}
 
-These figures shows temporal trends in the number of records for CHORDS priority lab tests.
+tab3a_prov$n_procs <- ave(tab3a_prov$PERFORMINGPROVIDER == tab3a_prov$PERFORMINGPROVIDER, 
+                          tab3a_prov$PERFORMINGPROVIDER, 
+                          FUN = cumsum)
 
-
-```{r fig1_res, fig.height=10, fig.width=15}
-
-fig1 <- odbc::dbGetQuery(con, 
-  "select test_type, 
-    month(result_dt) as month,
-    year(result_dt) as year,
-    count(*) as nrows
-	  from lab_results
-      where test_type in ('HGBA1C', 'PREGNANCY', 'HDL', 'LDL', 'TRIGLYCERIDE', 'GLUCOSE', 'CREATININE', 'HEP_C_RNA', 'HEP_C_ANTIBODY', 'HEP_C_GENOTYPE', 'IGE', 'EOSINOPHIL')
-	    group by year(result_dt), month(result_dt), test_type") 
-
-fig1_sub <- fig1 %>% 
-  arrange(year, month, test_type) %>% 
+tab3b <- tab3a_prov %>% 
+  group_by(PERFORMINGPROVIDER) %>% 
   mutate(
-    date = as.Date(paste(year, month, "01", sep = "-"))
+    sum_spine = sum(spine),
+    sum_pectus = sum(pectus),
+    max_proc = max(n_procs, na.rm = T),
+    p_race = dplyr::recode(PROVIDER_RACE, 
+                           HP = "Native Hawaiian or Other Pacific Islander", 
+                           IN = "American Indian/Alaska Native",
+                           AS = "Asian",
+                           BA = "Black or African American",
+                           WH = "White",
+                           MU = "More than one race, particular races unknown or not reported",
+                           OT= "Other",
+                           UN = "Unknown or Not Reported"),
+    p_hisp = dplyr::recode(PROVIDER_HISPANIC, 
+                           Y = "Yes",
+                           N = "No",
+                           U = "Unknown")
   ) %>% 
-  select(-month, -year)
-
-fig1_wide <- spread(fig1_sub, key = test_type, value = nrows)
-
-lapply(2:ncol(fig1_wide), function(x) 
-  ggplot(data = fig1_wide, aes(x = date, y = fig1_wide[[x]])) +
-         geom_line() +
-    ggtitle(names(fig1_wide)[x]) +
-    theme(axis.text.x = element_text(angle=45, margin(b = .5), vjust = .5)) +
-    scale_x_date(date_labels = "%b %y",date_breaks='1 year') +
-    xlab("Date") + ylab("Number of Records") +
-    theme(panel.grid.major = element_blank(), 
-        panel.grid.minor = element_blank(),
-        panel.background = element_blank(),  
-        axis.line = element_line(colour = "black"),
-        axis.title = element_text(size = 16, face = "bold"),
-        axis.text = element_text(size = 14, face = "bold"),
-        plot.title = element_text(hjust = 0.5, size = 20))
-    ) 
-
+  dplyr::filter(!duplicated(PERFORMINGPROVIDER)) %>% 
+  ungroup(.) %>% 
+  select(PERFORMINGPROVIDER, sum_spine, sum_pectus, SPECIALTY, PROVIDER_BIRTH_YEAR, p_race, p_hisp, YEAR_GRADUATED, max_proc)
 
 ```
 
-##Table 5: Summary of the Ten Most Common Lab Tests - Number/Percentage of Tests and Number/Percentage of Patients Tested, by Select BATTERY_CD Values
+```{r tab3b_out, results="asis"}
 
-This table illustrates the number (and percent) of the data partner's ten most common lab tests and the number (and percent) of unique patients tested with the ten most common lab tests, by the BATTERY_CD field (which captures site-specific lab test names), the percentage of records this represents, and the number and percent of patients in the LAB_RESULTS table who have these results. 
-
-```{r tab5_res}
-
-tab5 <- odbc::dbGetQuery(con, 
-  "select battery_cd,
-    count(*) as nrows, 
-	  count(distinct person_id) as npats
-	  from lab_results
-	    group by battery_cd")
-
-tab5_sub <- tab5 %>% 
-  mutate(
-    pct_rec = round(nrows / tab1_lab$nrows, 4) * 100,
-    pct_pat = round(npats / tab1_lab$npats, 4) * 100
-  ) %>%
-  arrange(desc(pct_rec)) %>% 
-  head(., 10) %>% 
-  select(battery_cd, nrows, pct_rec, npats, pct_pat)
-
+knitr::kable(tab3b, col.names = c("Physician ID Number", "Count of Spine PXs", "Count of Pectus PXs", "Physician Specialty", "Physician Birth Year", "Physician Year Graduated", "Physician Race", "Physician Ethnicity", "Total Volume"))
 
 ```
-
-
-```{r tab5_disp, results="asis"}
-
-kable(tab5_sub, col.names = c("BATTERY_CD", "Number of Recorded Lab Tests", "Percentage of All Lab Tests", "Number of Patients Tested", "Percentage of All Patients with a Lab Test"), format.args = list(big.mark = ","))
-
-```
-
-##Examination of the PRESCRIBING Table (Medication Orders and Prescriptions Combined)
-
-The following tables explore the contents of the PRESCRIBING table with a focus on trends over time and most common types of medications ordered. 
-
-##Table 6: Annual Trends in Prescribing Data - the Total Number of Recorded Medication Orders, the Percent Change from the Previous Year, the Total Number of Patients and the Mean, Maximum and Minimum Numbers of Orders & Prescriptions per Patient
-
-This table displays trends in PRESCRIBING record volume over time as well as patient volume represented in the table. PRESCRIBING records are attributed to a year based on RX_ORDER_DATE.
-
-
-```{r tab6_res}
-
-tab6 <- odbc::dbGetQuery(con, 
-  "select year(rx_order_date) as year,
-    count(*) as nrows, 
-	  count(distinct person_id) as npats
-	  from prescribing
-	    group by year(rx_order_date)
-      order by year(rx_order_date)")
-
-tab6_avg_pats <- odbc::dbGetQuery(con, 
-  "select year(rx_order_date) as year,
-    count(*) as nrows
-	  from prescribing
-	    group by year(rx_order_date), person_id
-      order by year(rx_order_date)") %>% 
-  arrange(year) %>% 
-  group_by(year) %>% 
-  summarise_all(funs(mean, median, min, max))%>% 
-  mutate(
-    pats_val = paste0(median, "(", min, ", ", max, ")")
-  )
-
-tab6_all <- left_join(tab6, tab6_avg_pats, by = "year") %>% 
-  mutate(
-    ptc_rec = if_else(is.na(nrows / dplyr::lag(nrows)), "--", paste0(round(nrows / dplyr::lag(nrows) * 100, 0), "%"))
-  ) %>% 
-  select(year, nrows, ptc_rec, npats, median, min, max)
-
-tab6_all$year <- as.character(tab6_all$year)
-
-```
-
-```{r tab6_disp, results="asis"}
-
-kable(tab6_all, col.names = c("Year", "Total Number of Prescriptions", "Percent Change From Last Year", "Total Number of Patients", "Median number of Prescriptions per patient", "Minimum Number of Prescriptions Per Patient", "Maximum Number of Prescriptions Per Patient"), format.args = list(big.mark = ","))
-
-```
-
-##Table 7: Summary of the Ten Most Common Medications by Order Type
-
-This table displays the top ten most common orders including count of records and patients. 
-
-```{r tab7_res}
-
-tab7_basis2 <- odbc::dbGetQuery(con, 
-  "select top 10 GENERIC_MED_NAME,
-    count(*) as nrows,
-	  count(distinct person_id) as npats,
-    avg(RX_DAYS_SUPPLY) as avg_days_sup,
-    avg(RX_QUANTITY_NUM) as avg_rx_quant
-	  from prescribing
-      where RX_BASIS = '02'
-	    group by GENERIC_MED_NAME
-      order by nrows DESC") 
-
-tab7_basis1 <- odbc::dbGetQuery(con, 
-  "select top 10 GENERIC_MED_NAME,
-    count(*) as nrows,
-	  count(distinct person_id) as npats,
-    avg(RX_DAYS_SUPPLY) as avg_days_sup,
-    avg(RX_QUANTITY_NUM) as avg_rx_quant
-	  from prescribing
-      where RX_BASIS = '01'
-	    group by GENERIC_MED_NAME
-      order by nrows DESC") 
-
-tab7_basis_oth <- odbc::dbGetQuery(con, 
-  "select top 10 GENERIC_MED_NAME,
-    count(*) as nrows,
-	  count(distinct person_id) as npats,
-    avg(RX_DAYS_SUPPLY) as avg_days_sup,
-    avg(RX_QUANTITY_NUM) as avg_rx_quant
-	  from prescribing
-      where RX_BASIS in ('NI', 'UN', 'OT')
-	    group by GENERIC_MED_NAME
-      order by nrows DESC") 
-
-
-```
-
-```{r tab7_disp, results="asis"}
-#if and else statements are used to determine if the respecitvie table has any
-#rows. If not, then an error message is written indicating so.
-
-if (nrow(tab7_basis2) != 0){
-  kable(tab7_basis2, col.names = c("Medication Name (GENERIC_MED_NAME)", "Records", "Patients", "Average Days Supply", "Average Quantity"), caption = "Order to Administer (RX_BASIS = 02)", format.args = list(big.mark = ","))
-} else {
-  cat(noquote(paste0("Table had zero rows.  RX_BASIS = 02 likely isn't a category for this variable.", "\n")))
-} 
-
-
-if (nrow(tab7_basis1) != 0){
-  kable(tab7_basis1, col.names = c("Medication Name (GENERIC_MED_NAME)", "Records", "Patients", "Average Days Supply", "Average Quantity"), caption = "Order to Administer (RX_BASIS = 01)", format.args = list(big.mark = ","))
-} else {
-  cat(noquote(paste0("Table had zero rows.  RX_BASIS = 01 likely isn't a category for this variable.", "\n")))
-} 
-
-if (nrow(tab7_basis_oth) != 0){
-  kable(tab7_basis_oth, col.names = c("Medication Name (GENERIC_MED_NAME)", "Records", "Patients", "Average Days Supply", "Average Quantity"), caption = "Order to Administer (RX_BASIS = 01)", format.args = list(big.mark = ","))
-} else {
-   cat(noquote(paste0("Table had zero rows.  RX_BASIS = NI, UN, or OT likely aren't categories for this variable.", "\n")))
-} 
-
-```
-
-##Examination of the PROCEDURES Table 
-
-The following tables explore the contents of the PROCEDURES table with a focus on trends over time and most common types of procedures. 
-
-##Table 8: Annual Trends in the Total Number of Recorded Procedures, the Mean Number of Encounters, the Mean Number of Patients and the Percent Change from the Previous Year, by Calendar Year
-
-This table examines the volume of procedures over time and the number of encounters and patients with represented in the PROCEDURES table. Average number of procedures per encounter, and per patient, are calculated to compare procedure volume trends over time.
-
-
-```{r tab8_res}
-
-tab8 <- odbc::dbGetQuery(con, 
-  "select year(procdate) as year,
-    count(*) as nrows, 
-    count(distinct enc_id) as nencts,
-	  count(distinct person_id) as npats
-	  from procedures
-	    group by year(procdate)
-      order by year(procdate)")
-
-tab8_avg_encts <- odbc::dbGetQuery(con, 
-  "select year(procdate) as year,
-    count(*) as nrows
-	  from procedures
-	    group by year(procdate), enc_id
-      order by year(procdate)") %>% 
-  arrange(year) %>% 
-  group_by(year) %>% 
-  summarise_all(funs(mean, median, min, max)) %>% 
-  mutate(
-    enct_val = paste0(median, "(", min, ", ", max, ")")
-  ) %>% 
-  select(enct_val)
-
-tab8_avg_pats <- odbc::dbGetQuery(con, 
-  "select year(procdate) as year,
-    count(*) as nrows
-	  from procedures
-	    group by year(procdate), person_id
-      order by year(procdate)") %>% 
-  arrange(year) %>% 
-  group_by(year) %>% 
-  summarise_all(funs(mean, median, min, max))%>% 
-  mutate(
-    pats_val = paste0(median, "(", min, ", ", max, ")")
-  ) %>% 
-  select(pats_val)
-
-tab8_add <- tab8 %>% 
-  bind_cols(., tab8_avg_encts, tab8_avg_pats) %>% 
-  mutate(
-    ptc_rec = if_else(is.na(nrows / dplyr::lag(nrows)), "--", paste0(round(nrows / dplyr::lag(nrows) * 100, 0), "%"))
-  ) %>% 
-  select(year, nrows, ptc_rec, nencts, npats, enct_val, pats_val)
-
-tab8_add$year <- as.character(tab8_add$year)
-
-```
-
-```{r tab8_dis, results="asis"}
-
-kable(tab8_add, col.names = c("Year", "Total Number of Recorded Procedures", "Percent Change from Previous Year", "Total Number of Encounters with Procedures", "Total Number of Patients with Procedures", "Median Number of Procedures per Encounter (Min, Max)", "Median Number of Procedures per Patient (Min, Max)"), format.args = list(big.mark = ","))
-
-```
-
-##Table 9:  Total Number and Percent of Recorded Encounters, Diagnoses and Procedures, by Encounter Type
-
-This table compares the distribution of procedures, diagnoses and encounters by encounter type. Average diagnosis and procedure counts per encounter are calculated to compare diagnosis and procedure volume by encounter type.
-
-```{r tab9_res}
-
-tab9_enct1 <- odbc::dbGetQuery(con, 
-  "select enctype,
-    count(*) as nrows_enct
-	  from encounters
-	    group by enctype")
-
-tab9_enct2 <- odbc::dbGetQuery(con, 
-  "select count(*) as enct_tot
-	  from encounters")
-
-tab9_diag1 <- odbc::dbGetQuery(con, 
-  "select enctype,
-    count(*) as nrows_diag
-	  from diagnoses
-	    group by enctype")
-
-tab9_diag2 <- odbc::dbGetQuery(con, 
-  "select count(*) as diag_tot
-	  from diagnoses")
-
-tab9_px1 <- odbc::dbGetQuery(con, 
-  "select enctype,
-    count(*) as nrows_px
-	  from procedures
-	    group by enctype")
-
-tab9_px2 <- odbc::dbGetQuery(con, 
-  "select count(*) as px_tot
-	  from procedures")
-
-tab9_tot <- data.frame(enctype = "Total", nrows_enct = tab9_enct2$enct_tot, nrows_diag = tab9_diag2$diag_tot, nrows_px = tab9_px2$px_tot, pct_enct = NA, pct_diag = NA, pct_px = NA)
-
-tab9_all <- tab9_enct1 %>% 
-  left_join(., tab9_diag1, by = "enctype") %>% 
-  left_join(., tab9_px1, by = "enctype") %>% 
-  mutate(
-    pct_enct = nrows_enct / tab9_enct2$enct_tot * 100,
-    pct_diag = nrows_diag / tab9_diag2$diag_tot * 100,
-    pct_px   = nrows_px / tab9_px2$px_tot * 100,
-    enctype  = recode(enctype, "IP" = "Acute In Patient", "ED" = "Emergency Department", "AV" = "Ambulatory Visit", "TE" = "Telephone Encounter", "EM" = "E-mail Encounter", "IS" = "Non-acute Inpatient", "OE" = "Other Encounters", "LO" = "Lab Only Encounter", "RO" = "Radiology Only Encounter")
-  ) %>% 
-  bind_rows(., tab9_tot)  
-
-
-```
-
-```{r tab9_disp, results="asis"}
-
-kable(tab9_all, col.names = c("Encounter Type", "Number of Encounters", "Percent of Total Encounters", "Number of Diagnoses", "Percent of Total Diagnoses", "Number of Procedures", "Percent of Total Procedures"), digits = 2, format.args = list(big.mark = ","))
-
-```
-
-##Table 10: Summary of the Ten Most Common Procedures - Procedure Code, Procedure Type, Total Number of Recorded Procedures and Total Number of Recorded Patients, by All or Ambulatory Encounter Type 
-
-This table includes information on the ten most common procedures recorded in your PROCEDURE table.  Data on procedure codes, types, counts and patients are presented for all encounters and for ambulatory only encounters (ENCTYPE='AV'). 
-
-```{r tab10_res}
-
-tab10_pxall <- odbc::dbGetQuery(con, 
-  "select px,
-    px_codetype,
-    count(*) as nrows_all,
-    count(distinct person_id) as npats
-	  from procedures
-	    group by px, px_codetype") %>% 
-  arrange(desc(nrows_all)) %>% 
-  head(., 10)
-
-tab10_pxav <- odbc::dbGetQuery(con, 
-  "select px as px_av,
-    px_codetype as px_codetype_av,
-    count(*) as nrows_av,
-    count(distinct person_id) as npats_av
-	  from procedures
-      where ENCTYPE = 'AV'
-	    group by px, px_codetype") %>% 
-  arrange(desc(nrows_av)) %>% 
-  head(., 10)
-
-tab10_all <- bind_cols(tab10_pxall, tab10_pxav)
-
-```
-
-```{r tab10_disp, results="asis"}
-
-kable(tab10_all, col.names = c("Procedure Code", "Procedure Type", "Number of Recorded Procedures", "Number of Patients", "Procedure Code for AV", "Procedure Type for AV", "Number of Recorded Procedures for AV", "Number of Patients for AV"), format.args = list(big.mark = ","))
-
-```
-
-##Table 11: Summary of the Ten Most Common Procedures by Procedure Code Type, Total Number of Recorded Procedures and Total Number of Recorded Patients 
-
-This table includes information on the ten most common procedures recorded in your PROCEDURE table.  Data on procedure codes, counts and patients are presented for CPT, HCPCS, and other code types. 
-
-```{r tab11_res}
-
-tab11_pxc4 <- odbc::dbGetQuery(con, 
-  "select top 10 px,
-    count(*) as nrows_all,
-    count(distinct person_id) as npats
-	  from procedures
-	    where px_codetype = 'C4'
-      group by px
-      order by nrows_all DESC") 
-
-tab11_pxh4 <- odbc::dbGetQuery(con, 
-  "select top 10 px,
-    count(*) as nrows_all,
-    count(distinct person_id) as npats
-	  from procedures
-	    where px_codetype = 'H4'
-      group by px
-      order by nrows_all DESC") 
-
-tab11_px_oth <- odbc::dbGetQuery(con, 
-  "select top 10 px,
-    count(*) as nrows_all,
-    count(distinct person_id) as npats
-	  from procedures
-	    where px_codetype IN ('09', '10', '11', 'RV', 'LO', 'OT')
-      group by px
-      order by nrows_all DESC") 
-```
-
-```{r tab11_disp, results="asis"}
-#if and else statements are used to determine if the respecitvie table has any
-#rows. If not, then an error message is written indicating so.
-
-if (nrow(tab11_pxc4) != 0){
-  kable(tab11_pxc4, col.names = c("Procedure", "Records", "Patients"), caption = "Procedure Code Type = C4", format.args = list(big.mark = ","))
-} else {
-   cat(noquote("Table had zero rows.  PX_CODETYPE = C4 likely isn't a category for this variable.\n"))
-} 
-
-
-if (nrow(tab11_pxh4) != 0){
-  kable(tab11_pxh4, col.names = c("Procedure", "Records", "Patients"), caption = "Procedure Code Type = H4", format.args = list(big.mark = ","))
-} else {
-   cat(noquote("Table had zero rows.  PX_CODETYPE = H4 likely isn't a category for this variable.\n"))
-} 
-
-if (nrow(tab11_px_oth) != 0){
-  kable(tab11_px_oth, col.names = c("Procedure", "Records", "Patients"), caption = "Procedure Code Type = 09, 10, 11, RV, LO, OT", format.args = list(big.mark = ","))
-} else {
-   cat(noquote("Table had zero rows.  PX_CODETYPE = 09, 10, 11, RV, LO, or OT likely aren't categories for this variable.\n"))
-} 
-
-
-```
-
-
-##Examination of the PROVIDER_SPECIALTY Table
-
-The following tables explore the contents of the PROVIDER_SPECIALTY table with a focus on demographic data and representativeness of providers across tables.  Note that in some systems providers can be listed multiple times with multiple provider types/specialties. 
-
-##Table 12: Number and Percent of Providers represented in ENCOUNTERS, DIAGNOSIS, LAB_RESULTS, PRESCRIBING, AND PROCEDURES Tables 
-
-This table includes information on the number and percent of providers represented in various CHORDS VDW 3.1 tables.
-
-```{r tab12_res}
-
-tab12_ps <- odbc::dbGetQuery(con, 
-  "select 'PROVIDER_SPECIALTY' as from_tab,
-   count(distinct provider) as num_prov
-     from provider_specialty")
-
-tab12_dx <- odbc::dbGetQuery(con, 
-  "select 'DIAGNOSES' as from_tab,
-   count(distinct provider) as num_prov
-     from diagnoses")
-
-tab12_enct <- odbc::dbGetQuery(con, 
-  "select 'ENCOUNTERS' as from_tab,
-   count(distinct provider) as num_prov
-     from encounters")
-
-tab12_lab <- odbc::dbGetQuery(con, 
-  "select 'LAB_RESULTS' as from_tab,
-   count(distinct order_prov) as num_prov 
-     from lab_results")
-
-tab12_rx <- odbc::dbGetQuery(con, 
-  "select 'PRESCRIBING' as from_tab,
-   count(distinct rxmd) as num_prov 
-     from PRESCRIBING")
-
-tab12_px <- odbc::dbGetQuery(con, 
-  "select 'PROCEDURES' as from_tab,
-   count(distinct provider) as num_prov
-     from procedures")
-
-tab12_all <- bind_rows(tab12_ps, tab12_dx, tab12_enct, tab12_lab, tab12_rx, tab12_px) %>% 
-  mutate(
-    pct_prov = num_prov / tab12_ps$num_prov * 100
-  )
-
-
-```
-
-```{r tab12_disp, results="asis"}
-
-kable(tab12_all, col.names = c("Table", "Number of Providers*", "Percent of Al Providers"), digits = 2, format.args = list(big.mark = ","))
-
-```
-*Excludes Provider = 'Unknown'
-
-
-##Table 13: Number and Percent of Providers by Specialty
-
-This table includes information on the distribution of providers by specialty
-
-```{r tab13_res}
-
-tab13 <- odbc::dbGetQuery(con, 
-  "select specialty as spec,
-   count(distinct provider) as num_prov
-     from provider_specialty
-       group by specialty
-       order by specialty") %>% 
-  bind_rows(data.frame(spec = "NULL", num_prov = tab2_ps_null$SPECIALTY)) %>% 
-  mutate(
-    pct_prov = num_prov / tab12_ps$num_prov * 100
-  ) 
-
-tab13$spec_full <- specialties$Description[match(as.character(tab13$spec), as.character(specialties$SPECIALTY))]
-
-tab13 <- tab13[, c(1,4,2,3)]
-
-```
-```{r tab13_disp, results = "asis"}
-
-kable(tab13, col.names = c("Specialty Abbreviation", "Specialty", "Number of Providers", "Percent of All Providers"), digits = 2, format.args = list(big.mark = ","))
-
-```
-
-##Table 14: Number and Percent of Provider by Provider Type 
-
-This table includes information on the distribution of providers by type.
-
-
-```{r tab14_res}
-
-tab14 <- odbc::dbGetQuery(con, 
-  "select provider_type as prov_type,
-   count(distinct provider) as num_prov
-     from provider_specialty
-       group by provider_type
-       order by provider_type") %>% 
-  bind_rows(data.frame(prov_type = "NULL", num_prov = tab2_ps_null$PROVIDER_TYPE)) %>% 
-  mutate(
-    pct_prov = num_prov / tab12_ps$num_prov * 100
-  ) 
-
-tab14$spec_full <- prov_type$V2[match(as.character(tab14$prov_type), as.character(prov_type$V1))]
-
-tab14 <- tab14[, c(1,4,2,3)]
-
-```
-
-```{r tab14_disp, results = "asis"}
-
-kable(tab14, col.names = c("Provider Abbreviation", "Provider Type", "Number of Providers", "Percent of All Providers"), digits = 2, format.args = list(big.mark = ","))
-
-```
-
-##Table 15: Annual Trends in Self-Reported Tobacco Use - the Distribution of Responses by Tobacco Behavior Categories, by Calendar Year	
-
-This table includes information on the distribution of SOCIAL_HISTORY records by TOBACCO_USER value.
-
-```{r tab15_res}
-
-tab15 <- odbc::dbGetQuery(con, 
-  "select year(contact_date) as year,
-   count(*) as num_rec,
-   SUM(CASE WHEN TOBACCO_USER = 'Y' THEN 1 ELSE 0 END) as smoker,
-   SUM(CASE WHEN TOBACCO_USER = 'I' THEN 1 ELSE 0 END) as infreq,
-   SUM(CASE WHEN TOBACCO_USER = 'Q' THEN 1 ELSE 0 END) as former,
-   SUM(CASE WHEN TOBACCO_USER = 'P' THEN 1 ELSE 0 END) as passive,
-   SUM(CASE WHEN TOBACCO_USER = 'N' THEN 1 ELSE 0 END) as never,
-   SUM(CASE WHEN TOBACCO_USER IN ('X', 'U') THEN 1 ELSE 0 END) as unknown,
-   SUM(CASE WHEN TOBACCO_USER IS NULL THEN 1 ELSE 0 END) as t_null
-     from social_history
-       group by year(contact_date)
-       order by year(contact_date)")
-
-tab15$year <- as.character(tab15$year)
-
-```
-
-```{r tab15_disp, results="asis"}
-kable(tab15, col.names = c("Year", "Records", "Yes/Current", "Infrequent", "Quit/Former", "Passive/Second Hand Smoke Exposure", "Never", "Not Asked/Unknown", "Null"), format.args = list(big.mark = ","))
-
-```
-
-##Table 16: Annual Trends in Self-Reported Alcohol Use - the Distribution of Responses by Alcohol Behavior Categories, by Calendar Year	
-
-This table includes information on the distribution of SOCIAL_HISTORY records by ALCOHOL_USER value.
-
-
-```{r tab16_res}
-
-tab16 <- odbc::dbGetQuery(con, 
-  "select year(contact_date) as year,
-   count(*) as num_rec,
-   SUM(CASE WHEN ALCOHOL_USER = 'Y' THEN 1 ELSE 0 END) as alc_use,
-   SUM(CASE WHEN ALCOHOL_USER = 'Q' THEN 1 ELSE 0 END) as former,
-   SUM(CASE WHEN ALCOHOL_USER = 'N' THEN 1 ELSE 0 END) as never,
-   SUM(CASE WHEN ALCOHOL_USER IN ('X', 'U') THEN 1 ELSE 0 END) as unknown,
-   SUM(CASE WHEN ALCOHOL_USER IS NULL THEN 1 ELSE 0 END) as t_null
-     from social_history
-       group by year(contact_date)
-       order by year(contact_date)")
-
-tab16$year <- as.character(tab16$year)
-
-odbc::dbGetQuery(con,
-  "select top 10 *
-from social_history")
-
-```
-
-```{r tab16_disp, results="asis"}
-kable(tab16, col.names = c("Year", "Records", "Yes/Current", "Quit/Former",  "Never", "Not Asked/Unknown", "Null"), format.args = list(big.mark = ","))
-
-```
-
-##Table 17: Annual Trends in Self-Reported Illicit Drug Use - the Distribution of Responses by Illicit Drug Use Behavior Categories, by Calendar Year	
-
-This table includes information on the distribution of SOCIAL_HISTORY records by ILL_DRUG_USER value.
-
-```{r tab17_res}
-
-tab17 <- odbc::dbGetQuery(con, 
-  "select year(contact_date) as year,
-   count(*) as num_rec,
-   SUM(CASE WHEN ILL_DRUG_USER = 'Y' THEN 1 ELSE 0 END) as ill_drug,
-   SUM(CASE WHEN ILL_DRUG_USER = 'Q' THEN 1 ELSE 0 END) as former,
-   SUM(CASE WHEN ILL_DRUG_USER = 'N' THEN 1 ELSE 0 END) as never,
-   SUM(CASE WHEN ILL_DRUG_USER IN ('X', 'U') THEN 1 ELSE 0 END) as unknown,
-   SUM(CASE WHEN ILL_DRUG_USER IS NULL THEN 1 ELSE 0 END) as t_null
-     from social_history
-       group by year(contact_date)
-       order by year(contact_date)")
-
-tab17$year <- as.character(tab17$year)
-
-```
-
-```{r tab17_disp, results="asis"}
-kable(tab17, col.names = c("Year", "Records", "Yes/Current", "Quit/Former",  "Never", "Not Asked/Unknown", "Null"), format.args = list(big.mark = ","))
-
-```
-
-####Total program run time:
-```{r calc_runtime}
-# close odbc
-DBI::dbDisconnect(con)
-
-endTime <- Sys.time()
-runtime <- endTime - startTime 
-```
-
-
-Query run time = `r runtime` minutes
