@@ -562,7 +562,7 @@ knitr::kable(tab2a4, col.names = c("Procedure Type", "Primary DX", "Count of DX"
 
 I need to add in count of unique combination of procedures and mean/median length of stay
 
-```{r, tab2b_data, eval=FALSE}
+```{r, tab2b_data}
 
 tab2b <- odbc::dbGetQuery(con,
        "SELECT
@@ -750,6 +750,8 @@ knitr::kable(tab2c_sum, col.names = c(paste0("Variables N = ", nrow(tab2c2)), "C
 
 ## Table 3A: Type of Surgeon/Physician of Record for Index
 
+The Total values for both Spine and Pectus are for any age of patient.
+
 ```{r med_names}
 
 # tab3a <- odbc::dbGetQuery(con,
@@ -833,22 +835,10 @@ tab3a_prov <- odbc::dbGetQuery(con,
       YEAR(z.ADATE) as px_date
 
 FROM
-         DEMOGRAPHICS a
-         INNER JOIN [PROCEDURES] z
-              ON z.PERSON_ID = a.PERSON_ID
+         PROCEDURES z
          LEFT JOIN [PROVIDER_SPECIALTY] d
               ON z.PERFORMINGPROVIDER = d.PROVIDER
     WHERE  z.ADATE >= '01/01/2011'
-           AND DATEDIFF(YY, a.BIRTH_DATE, z.ADATE) - CASE
-                      WHEN DATEADD(YY, DATEDIFF(YY, a.BIRTH_DATE, z.ADATE), a.BIRTH_DATE) > z.ADATE
-                      THEN 1
-                      ELSE 0
-                    END >= 10
-           AND DATEDIFF(YY, a.BIRTH_DATE, z.ADATE) - CASE
-                      WHEN DATEADD(YY, DATEDIFF(YY, a.BIRTH_DATE, z.ADATE), a.BIRTH_DATE) > z.ADATE
-                      THEN 1
-                      ELSE 0
-                    END <= 26
            AND 
                z.PERFORMINGPROVIDER IN('E_3465', 'E_13066', 'E_13066', 'E_13066', '088377', 'E_13066', 'E_13066', 'E_14465', 'E_1526', 'E_1526', 'E_4104', 'E_5277', 'E_1322', 'E_13066', 'E_1322', 'E_13066', '116038', '158352', '145318', '145466', '123364', '130666', '162974', '169649', '125401', '086330', 'E_1322', '132274', 'E_13066', '113399', '073361', '116038', '123364', '133595', '144576', '145318', '140848', '125401', '144576', 'E_13066', '125401', '124586', 'E_13066', '073361', '128850', '124453', '158352', '100305', '141531', '162974', '132274', '046771', 'E_13066', 'E_4046', '133322', '125401', '141531', '070979', '135863', '123364', '124453', '158378', '131375', '133595', '133322', '086330', 'E_1526', '133322', '156604', 'E_13066', '088377', '162974', '141531', '079038', '077321', '157230', '100305', '100305', '141440', '133322', '073411', '133595', '128850', '156604', 'E_3844', '144576', '128850', 'E_1526', '123364', '007047', '158378', '124453', '141481', '135863', '156604', '141465', '124453', '124453', '128850', '146787', '119578', '147918', '124586', 'E_3661', '086330', '153767', '110676', '111153') 
             AND
@@ -889,6 +879,10 @@ knitr::kable(tab3a2_prov, col.names = c("Year", "Provider Specialty", "Cohort Pr
 
 ```
 
+## Table Pack 3C: Surgeon Demographics per Facility
+
+The Counts for both Spine and Pectus are for any age of patient.
+
 ```{r tab3b_data}
 
 tab3a_prov$n_procs <- ave(tab3a_prov$PERFORMINGPROVIDER == tab3a_prov$PERFORMINGPROVIDER, 
@@ -901,6 +895,8 @@ tab3b <- tab3a_prov %>%
     sum_spine = sum(spine),
     sum_pectus = sum(pectus),
     max_proc = max(n_procs, na.rm = T),
+    cohort_proc = if_else(ENC_ID %in% tab1b2$ENC_ID, 1, 0),
+    sum_cohort = sum(cohort_proc),
     p_race = dplyr::recode(PROVIDER_RACE, 
                            HP = "Native Hawaiian or Other Pacific Islander", 
                            IN = "American Indian/Alaska Native",
@@ -917,12 +913,12 @@ tab3b <- tab3a_prov %>%
   ) %>% 
   dplyr::filter(!duplicated(PERFORMINGPROVIDER)) %>% 
   ungroup(.) %>% 
-  select(PERFORMINGPROVIDER, sum_spine, sum_pectus, SPECIALTY, PROVIDER_BIRTH_YEAR, p_race, p_hisp, YEAR_GRADUATED, max_proc)
+  select(PERFORMINGPROVIDER, sum_spine, sum_pectus, sum_cohort, SPECIALTY, PROVIDER_BIRTH_YEAR, p_race, p_hisp, YEAR_GRADUATED, max_proc) 
 
 ```
 
 ```{r tab3b_out, results="asis"}
 
-knitr::kable(tab3b, col.names = c("Physician ID Number", "Count of Spine PXs", "Count of Pectus PXs", "Physician Specialty", "Physician Birth Year", "Physician Year Graduated", "Physician Race", "Physician Ethnicity", "Total Volume"))
+knitr::kable(tab3b, col.names = c("Physician ID", "Count Spine PXs", "Count Pectus PXs", "Count Cohort PXs", "Physician Specialty", "Physician Birth Year", "Physician Year Graduated", "Physician Race", "Physician Ethnicity", "Total Volume"))
 
 ```
