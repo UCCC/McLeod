@@ -80,6 +80,7 @@ specialties <- chordsTables::specialties
 
 # Provider type
 prov_type <- chordsTables::prov_type
+names(prov_type) <- c("PROVIDER_TYPE", "prov_desc")
 
 #Create long version of codes file
 codes <- readr::read_csv("Q:/MattCM/CHORDS/surg2rec/inclusion codes.csv")
@@ -419,7 +420,7 @@ if(length(dimnames(table(tab1e$ProcedureType))) == 1){
 ```{r fig1a_data}
 
 fig1a <- ggplot(data = tab1b2, aes(x = AGE)) +
-  geom_histogram(color="black", fill="red") +
+  geom_histogram(color="black", fill="red", binwidth = 1) +
   ylab("Count") + xlab("Age")
 
 fig1a
@@ -500,9 +501,7 @@ knitr::kable(tab2a4, col.names = c("Procedure Type", "Primary DX", "Count of DX"
 
 ```
 
-##Table Pack 2B: Procedure Code Frequencies & LOS by Location (TABLE NOT POPULATED)
-
-I need to add in count of unique combination of procedures and mean/median length of stay
+##Table Pack 2B: Procedure Code Frequencies & LOS by Location
 
 ```{r, tab2b_data}
 
@@ -548,33 +547,54 @@ tab2b2 <- tab2b %>%
   ) %>% 
   ungroup(.) %>% 
   dplyr::filter(use_dt == 1) %>% 
-  left_join(., los_tab, by = "PERSON_ID")
+  left_join(., los_tab, by = "PERSON_ID") %>% 
+  group_by(PERSON_ID) %>%
+  mutate(
+    px_num = paste0("px_", 1:length(PERSON_ID))
+  ) %>% 
+  ungroup(.) 
 
-tab2b_test <- as.data.frame(table(tab2b2$ProcedureType, tab2b2$PX))
+tab2b_wide <- tidyr::spread(tab2b2, px_num, PX) %>% 
+  mutate(
+    all_pxs = if_else(is.na(px_2), px_1,
+                      if_else(is.na(px_3), paste(px_1, px_2, sep = ", "),
+                              if_else(is.na(px_4), paste(px_1, px_2, px_3, sep = ", "),
+                                      if_else(is.na(px_5), paste(px_1, px_2, px_3, px_4, sep = ", "),
+                                              paste(px_1, px_2, px_3, px_4, px_5, sep = ", "))))) 
+  ) 
 
-# list_tab2b <- split(tab2b_test[, c(1,2)], seq(nrow(tab2b_test[, c(1,2)])))
-# 
-# px_tab <- data.frame(avg_los = unlist(lapply(list_tab2b, 
-#                                       function(x) mean(as.numeric(tab2b2[tab2b2$ProcedureType == x[[1]] & tab2b2$PX == x[[2]],
-#                                                               "los2"]), na.rm = T))))
-# 
-# mean(as.numeric(tab2b2[tab2b2$ProcedureType == list_tab2b[[1]][[1]] & tab2b2$PX == list_tab2b[[1]][[2]],
-#                                                               "los2"]), na.rm = T)
-# 
-# px_tab2 <- data.frame(med_los = unlist(lapply(list_tab2b, 
-#                                       function(x) median(as.numeric(tab2b2[tab2b2$ProcedureType == x[[1]] & tab2b2$PX == x[[2]],
-#                                                               "los2"]), na.rm = T))))
-# 
-# tab2b3 <- bind_cols(tab2b_test, px_tab)
-# tab2b4 <- bind_cols(tab2b3, px_tab2) %>% 
-#   dplyr::rename(ProcedureType = Var1, PX = Var2)
+table(tab2b_wide$all_pxs)
+
+#Get frequencies of px combinations
+tab2b_test <- as.data.frame(table(tab2b_wide$ProcedureType, tab2b_wide$all_pxs))
+
+# Create a list of unique pxs and px types to cycle through to get means and medians
+list_tab2b <- split(tab2b_test[, c(1,2)], seq(nrow(tab2b_test[, c(1,2)])))
+names(list_tab2b)
+
+#get means for all uniqe combinations of pxs and px types
+px_tab <- data.frame(avg_los = unlist(lapply(list_tab2b,
+                                      function(x) mean(as.numeric(tab2b_wide$los2[tab2b_wide$ProcedureType == x[[1]] & tab2b_wide$all_pxs == x[[2]]]), na.rm = T))))
+
+mean(as.numeric(tab2b_wide$los2[tab2b_wide$ProcedureType == list_tab2b[[58]][[1]] & tab2b_wide$all_pxs == list_tab2b[[58]][[2]]]), na.rm = T)
+
+#get medians for all uniqe combinations of pxs and px types
+px_tab2 <- data.frame(med_los = unlist(lapply(list_tab2b,
+                                      function(x) median(as.numeric(tab2b_wide$los2[tab2b_wide$ProcedureType == x[[1]] & tab2b_wide$all_pxs == x[[2]]]), na.rm = T))))
+
+median(as.numeric(tab2b_wide[tab2b_wide$ProcedureType == list_tab2b[[1]][[1]] & tab2b_wide$all_pxs == list_tab2b[[1]][[2]],
+                                                              "los2"]), na.rm = T)
+
+tab2b3 <- bind_cols(tab2b_test, px_tab)
+tab2b4 <- bind_cols(tab2b3, px_tab2) %>%
+  dplyr::rename(ProcedureType = Var1, PX = Var2)
 
 ```
 
 Of the `r n_distinct(tab2b$PERSON_ID)` patients from the initial cohort, `r n_distinct(tab2b2$PERSON_ID)` had one or more valid procedure/CPT codes that could be used for the following table.
 
-```{r tab2b_out}
-knitr::kable(tab2b_test, col.names = c("Procedure Type", "Procedure", "Count"))
+```{r tab2b_out, results="asis"}
+knitr::kable(tab2b4, col.names = c("Procedure Type", "Unique Combination of PXs", "Count", "Average LOS", "Median LOS"), digits = 2)
 
 ```
 
@@ -641,6 +661,8 @@ tab2c2 <- tab2c %>%
     ever_smoke = if_else(TOBACCO_USER == "Y", 1, 0),
     max_smoke  = max(ever_smoke),
     use_smoke  = if_else(ever_smoke == max_smoke, 1, 0),
+    smoke_na   = if_else(max_smoke != 1 & TOBACCO_USER == "X", 1, 0),
+    max_smoke_na = max(smoke_na),
     bc_use     = if_else(CONDOM_YN == "Y" | 
         PILL_YN == "Y" |
         DIAPHRAGM_YN == "Y" |
@@ -661,20 +683,24 @@ tab2c2 <- tab2c %>%
   ungroup(.)
 
 mean_los_sh <- c(mean(tab2c2$los2[tab2c2$max_smoke == 1], na.rm = T),
+                 mean(tab2c2$los2[tab2c2$max_smoke_na == 1], na.rm = T),
                  mean(tab2c2$los2[tab2c2$max_alc == 1], na.rm = T),
                  mean(tab2c2$los2[tab2c2$drug_use == 1], na.rm = T),
                  mean(tab2c2$los2[tab2c2$max_bc == 1], na.rm = T))
 
 median_los_sh <- c(median(tab2c2$los2[tab2c2$max_smoke == 1], na.rm = T),
+                   median(tab2c2$los2[tab2c2$max_smoke_na == 1], na.rm = T),
                    median(tab2c2$los2[tab2c2$max_alc == 1], na.rm = T),
                    median(tab2c2$los2[tab2c2$drug_use == 1], na.rm = T),
                    median(tab2c2$los2[tab2c2$max_bc == 1], na.rm = T))
+
 count_sh <- c(tally(tab2c2[tab2c2$max_smoke == 1, "los2"])[[1]],
+              tally(tab2c2[tab2c2$max_smoke_na == 1, "los2"])[[1]],
               tally(tab2c2[tab2c2$max_alc == 1, "los2"])[[1]],
               tally(tab2c2[tab2c2$drug_use == 1, "los2"])[[1]],
               tally(tab2c2[tab2c2$max_bc == 1, "los2"])[[1]])
 
-names_sh <- c("Tobacco Use", "Alcohol Use", "Illegal Drug Use",  "Birth Control Use")
+names_sh <- c("Tobacco Use", "Not asked about tobacco use", "Alcohol Use", "Illegal Drug Use",  "Birth Control Use")
 
 tab2c_sum <- data.frame(names = names_sh, counts = count_sh, means = mean_los_sh, medians = median_los_sh)
 
@@ -805,10 +831,11 @@ tab3a2_prov <- tab3a_prov %>%
   dplyr::filter(!duplicated(ENC_ID)) %>% 
   group_by(Description, px_date) %>% 
   mutate(
-    cohort = if_else(ENC_ID %in% tab1b2$ENC_ID, 1, 0)
+    cohort_s = if_else(ENC_ID %in% tab1b2$ENC_ID[tab1b2$spine == 1], 1, 0),
+    cohort_p = if_else(ENC_ID %in% tab1b2$ENC_ID[tab1b2$pectus == 1], 1, 0)
   ) %>% 
-  summarise(n_procs = sum(cohort), spine = sum(spine), pectus = sum(pectus)) %>% 
-  dplyr::select(Year = px_date, Provider_Specialty = Description, Cohort_PX = n_procs, spine, pectus)
+  summarise(n_cohort_s = sum(cohort_s), spine = sum(spine), n_cohort_p = sum(cohort_p), pectus = sum(pectus)) %>% 
+  dplyr::select(px_date, Description, n_cohort_s, spine, n_cohort_p, pectus)
 
 
 ```
@@ -817,7 +844,7 @@ This table contains information only for physicians, not fellows, residents, or 
 
 ```{r tab3a_out, results="asis"}
 
-knitr::kable(tab3a2_prov, col.names = c("Year", "Provider Specialty", "Cohort Procedures", "Total Spine Procedures", "Total Pectus Procedures"))
+knitr::kable(tab3a2_prov, col.names = c("Year", "Provider Specialty", "Cohort Spine PXs", "Total Spine Procedures", "Cohort Pectus PXs", "Total Pectus Procedures"))
 
 ```
 
@@ -831,14 +858,20 @@ tab3a_prov$n_procs <- ave(tab3a_prov$PERFORMINGPROVIDER == tab3a_prov$PERFORMING
                           tab3a_prov$PERFORMINGPROVIDER, 
                           FUN = cumsum)
 
+prov_type$PROVIDER_TYPE <- as.character(prov_type$PROVIDER_TYPE)
+
 tab3b <- tab3a_prov %>% 
+  left_join(., specialties, by = "SPECIALTY") %>% 
+  left_join(., prov_type, by = "PROVIDER_TYPE") %>% 
   group_by(PERFORMINGPROVIDER) %>% 
   mutate(
     sum_spine = sum(spine),
     sum_pectus = sum(pectus),
     max_proc = max(n_procs, na.rm = T),
-    cohort_proc = if_else(ENC_ID %in% tab1b2$ENC_ID, 1, 0),
-    sum_cohort = sum(cohort_proc),
+    cohort_spine = if_else(ENC_ID %in% tab1b2$ENC_ID[tab1b2$spine == 1], 1, 0),
+    cohort_pectus = if_else(ENC_ID %in% tab1b2$ENC_ID[tab1b2$pectus == 1], 1, 0),
+    sum_cohort_s = sum(cohort_spine),
+    sum_cohort_p = sum(cohort_pectus),
     p_race = dplyr::recode(PROVIDER_RACE, 
                            HP = "Native Hawaiian or Other Pacific Islander", 
                            IN = "American Indian/Alaska Native",
@@ -855,12 +888,12 @@ tab3b <- tab3a_prov %>%
   ) %>% 
   dplyr::filter(!duplicated(PERFORMINGPROVIDER)) %>% 
   ungroup(.) %>% 
-  select(PERFORMINGPROVIDER, sum_spine, sum_pectus, sum_cohort, SPECIALTY, PROVIDER_BIRTH_YEAR, p_race, p_hisp, YEAR_GRADUATED, max_proc) 
+  select(PERFORMINGPROVIDER, sum_cohort_s, sum_spine, sum_cohort_p, sum_pectus, prov_desc, Description, PROVIDER_BIRTH_YEAR, p_race, p_hisp, YEAR_GRADUATED, max_proc) 
 
 ```
 
 ```{r tab3b_out, results="asis"}
 
-knitr::kable(tab3b, col.names = c("Physician ID", "Count Spine PXs", "Count Pectus PXs", "Count Cohort PXs", "Physician Specialty", "Physician Birth Year", "Physician Year Graduated", "Physician Race", "Physician Ethnicity", "Total Volume"))
+knitr::kable(tab3b, col.names = c("Physician ID", "Num Cohort S", "Num Spine PXs", "Num Cohort P", "Num Pectus PXs", "Provider Type", "Phys Specialty", "Phys Birth Year", "Phys Year Graduated", "Phys Race", "Phys Ethnicity", "Total Volume"))
 
 ```
