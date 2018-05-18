@@ -139,8 +139,10 @@ states <- surg2rec::stateCnty
 # medication names
 med_names <- surg2rec::med_names
 
+# second list of medication names
+read
+
 #Create long version of codes file
-codes <- readr::read_csv("Q:/MattCM/CHORDS/surg2rec/inclusion codes.csv")
 codes2 <- codes %>% 
   tidyr::gather(.) %>% 
   dplyr::filter(complete.cases(.)) %>% 
