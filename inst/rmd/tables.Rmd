@@ -49,8 +49,6 @@ hospital <- ifelse(params$hospital == "CHCO", "Children's Hospital Colorado", "D
 
 hospital <- "DH"
 
-# codes <- readr::read_csv("Q:/MattCM/CHORDS/surg2rec/inclusion codes.csv")
-# devtools::use_data(codes, overwrite = T)
 
 ```
 
@@ -137,7 +135,6 @@ names(prov_type) <- c("PROVIDER_TYPE", "prov_desc")
 states <- surg2rec::stateCnty 
 
 #Create long version of codes file
-codes <- readr::read_csv("Q:/MattCM/CHORDS/surg2rec/inclusion codes.csv")
 codes2 <- codes %>% 
   tidyr::gather(.) %>% 
   dplyr::filter(complete.cases(.)) %>% 

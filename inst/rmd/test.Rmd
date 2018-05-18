@@ -78,6 +78,10 @@ ageCatCalc <- function(age){
 # Provider specialties
 specialties <- chordsTables::specialties
 
+# Medication Names
+med_names <- read_csv("Q:/MattCM/CHORDS/surg2rec/med-names.csv")
+devtools::use_data(med_names)
+
 # Provider type
 prov_type <- chordsTables::prov_type
 names(prov_type) <- c("PROVIDER_TYPE", "prov_desc")
@@ -848,7 +852,7 @@ knitr::kable(tab3a2_prov, col.names = c("Year", "Provider Specialty", "Cohort Sp
 
 ```
 
-## Table Pack 3C: Surgeon Demographics per Facility
+## Table Pack 3B: Surgeon Demographics per Facility
 
 The Counts for both Spine and Pectus are for any age of patient.
 
@@ -895,5 +899,18 @@ tab3b <- tab3a_prov %>%
 ```{r tab3b_out, results="asis"}
 
 knitr::kable(tab3b, col.names = c("Physician ID", "Num Cohort S", "Num Spine PXs", "Num Cohort P", "Num Pectus PXs", "Provider Type", "Phys Specialty", "Phys Birth Year", "Phys Year Graduated", "Phys Race", "Phys Ethnicity", "Total Volume"))
+
+```
+
+
+# Data Tables Protocol: Table Set 4: Rx Information
+
+## Table 4A: Basic RX Information on Patient Discharge post Index Procedure CHCO
+
+(Percent total of inclusion population – procedure code + inclusion criteria.)
+
+```{r tab4a_data}
+
+
 
 ```
