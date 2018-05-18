@@ -133,12 +133,13 @@ codes <- surg2rec::codes
 
 # Provider specialties
 specialties <- surg2rec::specialties
-specialties <- chordsTables::specialties
 
 # Provider type
 prov_type <- surg2rec::prov_type
-prov_type <- chordsTables::prov_type
 names(prov_type) <- c("PROVIDER_TYPE", "prov_desc")
+
+# GEOCODE information
+states <- surg2rec::stateCnty 
 
 #Create long version of codes file
 codes <- readr::read_csv("Q:/MattCM/CHORDS/surg2rec/inclusion codes.csv")
@@ -314,10 +315,6 @@ GROUP BY z.PERSON_ID, z.ENC_ID, z.PROCDATE, DATEDIFF(YY, a.BIRTH_DATE, z.ADATE) 
 )
 
 tab1b$stateCnty <-ifelse(tab1b$GEOCODE == "", NA, substr(tab1b$GEOCODE, 1, 5))
-
-## Change code below when package is created
-states <- chordsTables::stateCnty #%>% 
-  #select(state, stateFP, countyFP, stateCnty) 
 
 tab1b2 <- tab1b %>% 
   left_join(., states, by = "stateCnty") %>%   
@@ -955,3 +952,4 @@ tab3b <- tab3a_prov %>%
 knitr::kable(tab3b, col.names = c("Physician ID", "Num Cohort S", "Num Spine PXs", "Num Cohort P", "Num Pectus PXs", "Provider Type", "Phys Specialty", "Phys Birth Year", "Phys Year Graduated", "Phys Race", "Phys Ethnicity", "Total Volume"))
 
 ```
+
