@@ -16,9 +16,9 @@ params:
         choices: [cc-s-d05.ucdenver.pvt, vwphbisql06, ihrsql1.ihr.or.kp.org, PRDVDWSQL01, SQL01, BI01, vwedwtstsql04]
     DBName:
         label: "Database Name:"
-        value: VDW_3_1_DH
+        value: VDW_3_1_DH_0418
         input: select
-        choices: [VDW_3_1_DH, VDW.dbo, VDW, CHORDS_VDW_CC_3.1, CHORDS_VDW_CT_3.1, CHORDS_VDW_HP_3.1, CHORDS_VDW_MC_3.1, CHORDS_VDW_SC_3.1, CHORDS_VDW_SS_3.1, CHORDSlive.dbo, VDW.aligned, CHORDSlive]
+        choices: [VDW_3_1_DH, VDW.dbo, VDW, CHORDS_VDW_CC_3.1, CHORDS_VDW_CT_3.1, CHORDS_VDW_HP_3.1, CHORDS_VDW_MC_3.1, CHORDS_VDW_SC_3.1, CHORDS_VDW_SS_3.1, CHORDSlive.dbo, VDW.aligned, CHORDSlive, VDW_3_1_DH_0418]
 ---
 
 ```{r setup, include=FALSE}
@@ -135,6 +135,9 @@ names(prov_type) <- c("PROVIDER_TYPE", "prov_desc")
 
 # GEOCODE information
 states <- surg2rec::stateCnty 
+
+# medication names
+med_names <- surg2rec::med_names
 
 #Create long version of codes file
 codes <- readr::read_csv("Q:/MattCM/CHORDS/surg2rec/inclusion codes.csv")
@@ -952,3 +955,93 @@ knitr::kable(tab3b, col.names = c("Physician ID", "Num Cohort S", "Num Spine PXs
 
 ```
 
+# Table 4
+
+## Table 4A
+
+```{r tab4a_data}
+
+tab4a <- odbc::dbGetQuery(con,
+       "SELECT
+        DISTINCT z.ENC_ID,
+        z.PERSON_ID,
+        z.PROVIDER,
+        d.RXMD,
+        d.RX_ORDER_DATE,
+        d.RX_QUANTITY,
+        d.RX_QUANTITY_NUM,
+        d.RX_QUANTITY_UNIT,
+        d.RX_REFILLS,
+        d.RX_DAYS_SUPPLY,
+        d.RX_FREQUENCY,
+        d.GENERIC_MED_NAME,
+       MAX(CASE
+               WHEN z.PX IN('0RG4070', '0RG4071', '0RG407J', '0RG40A0', '0RG40A1', '0RG40AJ', '0RG40J0', '0RG40J1', '0RG40JJ', '0RG40K0', '0RG40K1', '0RG40KJ', '0RG40Z0', '0RG40Z1', '0RG40ZJ', '0RG6070', '0RG6071', '0RG607J', '0RG60A0', '0RG60A1', '0RG60AJ', '0RG60J0', '0RG60J1', '0RG60JJ', '0RG60K0', '0RG60K1', '0RG60KJ', '0RG60Z0', '0RG60Z1', '0RG60ZJ', '0RG7070', '0RG7071', '0RG707J', '0RG70A0', '0RG70A1', '0RG70AJ', '0RG70J0', '0RG70J1', '0RG70JJ', '0RG70K0', '0RG70K1', '0RG70KJ', '0RG70Z0', '0RG70Z1', '0RG70ZJ', '0RG8070', '0RG8071', '0RG807J', '0RG80A0', '0RG80A1', '0RG80AJ', '0RG80J0', '0RG80J1', '0RG80JJ', '0RG80K0', '0RG80K1', '0RG80KJ', '0RG80Z0', '0RG80Z1', '0RG80ZJ', '0RGA070', '0RGA071', '0RGA07J', '0RGA0A0', '0RGA0A1', '0RGA0AJ', '0RGA0J0', '0RGA0J1', '0RGA0JJ', '0RGA0K0', '0RGA0K1', '0RGA0KJ', '0RGA0Z0', '0RGA0Z1', '0RGA0ZJ', '0SG0070', '0SG0071', '0SG007J', '0SG00A0', '0SG00A1', '0SG00AJ', '0SG00J0', '0SG00J1', '0SG00JJ', '0SG00K0', '0SG00K1', '0SG00KJ', '0SG00Z0', '0SG00Z1', '0SG00ZJ', '0SG1070', '0SG1071', '0SG107J', '0SG10A0', '0SG10A1', '0SG10AJ', '0SG10J0', '0SG10J1', '0SG10JJ', '0SG10K0', '0SG10K1', '0SG10KJ', '0SG10Z0', '0SG10Z1', '0SG10ZJ', '0SG3070', '0SG3071', '0SG307J', '0SG30A0', '0SG30A1', '0SG30AJ', '0SG30J0', '0SG30J1', '0SG30JJ', '0SG30K0', '0SG30K1', '0SG30KJ', '0SG30Z0', '0SG30Z1', '0SG30ZJ', '81', '81.01', '81.02', '81.03', '81.04', '81.05', '81.06', '81.07', '81.08', '81.09', '81.3', '81.35', '81.36', '81.37', '81.38', '81.39', '81.61', '81.62', '81.63', '81.64', '84.51', '22532', '22533', '22548', '22551', '22554', '22556', '22558', '22586', '22590', '22595', '22600', '22610', '22612', '22614', '22630', '22633', '22634', '22800', '22802', '22804', '22808', '22810', '22812', '22818', '22819', '22830', '22840', '22841', '22842', '22843', '22844', '22845', '22846', '22847', '22848', '22849', '22850', '22852', '22853', '22854', '22855', '22856', '22857', '22858', '22859', '22861', '22862', '22864', '22865', '22867', '22868', '22869', '22870')
+               THEN 1 ELSE 0 END) AS spine,
+      MAX(CASE
+               WHEN z.PX IN('0WU80JZ', '0WU84JZ', '34.74', '21740', '21742', '21743')
+               THEN 1 ELSE 0 END) AS pectus,
+      z.PROCDATE,
+      YEAR(z.ADATE) as px_date
+
+FROM
+         DEMOGRAPHICS a
+         INNER JOIN [PROCEDURES] z
+              ON z.PERSON_ID = a.PERSON_ID
+         LEFT JOIN [PRESCRIBING] d
+              ON z.PERSON_ID = d.PERSON_ID AND z.ENC_ID = d.ENC_ID
+    WHERE  z.ADATE >= '01/01/2011'
+            AND DATEDIFF(YY, a.BIRTH_DATE, z.ADATE) - CASE
+                       WHEN DATEADD(YY, DATEDIFF(YY, a.BIRTH_DATE, z.ADATE), a.BIRTH_DATE) > z.ADATE
+                       THEN 1
+                       ELSE 0
+                     END >= 10
+            AND DATEDIFF(YY, a.BIRTH_DATE, z.ADATE) - CASE
+                       WHEN DATEADD(YY, DATEDIFF(YY, a.BIRTH_DATE, z.ADATE), a.BIRTH_DATE) > z.ADATE
+                       THEN 1
+                       ELSE 0
+                     END <= 26
+           AND
+               z.PX IN('0RG4070', '0RG4071', '0RG407J', '0RG40A0', '0RG40A1', '0RG40AJ', '0RG40J0', '0RG40J1', '0RG40JJ', '0RG40K0', '0RG40K1', '0RG40KJ', '0RG40Z0', '0RG40Z1', '0RG40ZJ', '0RG6070', '0RG6071', '0RG607J', '0RG60A0', '0RG60A1', '0RG60AJ', '0RG60J0', '0RG60J1', '0RG60JJ', '0RG60K0', '0RG60K1', '0RG60KJ', '0RG60Z0', '0RG60Z1', '0RG60ZJ', '0RG7070', '0RG7071', '0RG707J', '0RG70A0', '0RG70A1', '0RG70AJ', '0RG70J0', '0RG70J1', '0RG70JJ', '0RG70K0', '0RG70K1', '0RG70KJ', '0RG70Z0', '0RG70Z1', '0RG70ZJ', '0RG8070', '0RG8071', '0RG807J', '0RG80A0', '0RG80A1', '0RG80AJ', '0RG80J0', '0RG80J1', '0RG80JJ', '0RG80K0', '0RG80K1', '0RG80KJ', '0RG80Z0', '0RG80Z1', '0RG80ZJ', '0RGA070', '0RGA071', '0RGA07J', '0RGA0A0', '0RGA0A1', '0RGA0AJ', '0RGA0J0', '0RGA0J1', '0RGA0JJ', '0RGA0K0', '0RGA0K1', '0RGA0KJ', '0RGA0Z0', '0RGA0Z1', '0RGA0ZJ', '0SG0070', '0SG0071', '0SG007J', '0SG00A0', '0SG00A1', '0SG00AJ', '0SG00J0', '0SG00J1', '0SG00JJ', '0SG00K0', '0SG00K1', '0SG00KJ', '0SG00Z0', '0SG00Z1', '0SG00ZJ', '0SG1070', '0SG1071', '0SG107J', '0SG10A0', '0SG10A1', '0SG10AJ', '0SG10J0', '0SG10J1', '0SG10JJ', '0SG10K0', '0SG10K1', '0SG10KJ', '0SG10Z0', '0SG10Z1', '0SG10ZJ', '0SG3070', '0SG3071', '0SG307J', '0SG30A0', '0SG30A1', '0SG30AJ', '0SG30J0', '0SG30J1', '0SG30JJ', '0SG30K0', '0SG30K1', '0SG30KJ', '0SG30Z0', '0SG30Z1', '0SG30ZJ', '81', '81.01', '81.02', '81.03', '81.04', '81.05', '81.06', '81.07', '81.08', '81.09', '81.3', '81.35', '81.36', '81.37', '81.38', '81.39', '81.61', '81.62', '81.63', '81.64', '84.51', '0WU80JZ', '0WU84JZ', '34.74', '22532', '22533', '22548', '22551', '22554', '22556', '22558', '22586', '22590', '22595', '22600', '22610', '22612', '22614', '22630', '22633', '22634', '22800', '22802', '22804', '22808', '22810', '22812', '22818', '22819', '22830', '22840', '22841', '22842', '22843', '22844', '22845', '22846', '22847', '22848', '22849', '22850', '22852', '22853', '22854', '22855', '22856', '22857', '22858', '22859', '22861', '22862', '22864', '22865', '22867', '22868', '22869', '22870', '21740', '21742', '21743')
+GROUP BY z.ENC_ID,
+        z.PERSON_ID,
+        z.PROVIDER,
+        d.RXMD,
+        d.RX_ORDER_DATE,
+        d.RX_QUANTITY,
+        d.RX_QUANTITY_NUM,
+        d.RX_QUANTITY_UNIT,
+        d.RX_REFILLS,
+        d.RX_DAYS_SUPPLY,
+        d.RX_FREQUENCY, d.GENERIC_MED_NAME, z.PROCDATE, YEAR(z.ADATE)"
+)
+
+ht_wt <- tab1b2 %>% 
+  select(PERSON_ID, avg_ht, avg_wt, ProcedureType)
+
+tab4a2 <- tab4a %>% 
+  mutate(
+    med_use = if_else(GENERIC_MED_NAME %in% med_names$GENERIC_MED_NAME, 1, 0)
+  ) %>% 
+  dplyr::filter(med_use == 1) %>% 
+  dplyr::left_join(ht_wt, by = "PERSON_ID") %>% 
+  
+
+tab4_test <- as.data.frame(table(tab4a2$ProcedureType, tab4a2$GENERIC_MED_NAME))
+
+list_tab4 <- split(tab2_test[, c(1,2)], seq(nrow(tab2_test[, c(1,2)])))
+
+rx_tab <- data.frame(avg_los = unlist(lapply(list_tab4, 
+                                      function(x) mean(tab4a2[tab4a2$ProcedureType == x[[1]] & tab4a2$GENERIC_MED_NAME == x[[2]],
+                                                              "los2"], na.rm = T))))
+
+rx_tab2 <- data.frame(med_los = unlist(lapply(list_tab4, 
+                                      function(x) median(tab4a2[tab4a2$ProcedureType == x[[1]] & tab4a2$GENERIC_MED_NAME == x[[2]],
+                                                              "los2"], na.rm = T))))
+
+tab2a3 <- bind_cols(tab4_test, rx_tab)
+tab2a4 <- bind_cols(tab2a3, rx_tab2) %>% 
+  dplyr::rename(ProcedureType = Var1, GENERIC_MED_NAME = Var2)
+  
+
+```
