@@ -1,2 +1,6 @@
 ^.*\.Rproj$
 ^\.Rproj\.user$
+
+inst/rmd/test\.docx
+inst/rmd/test_cache
+inst/rmd/test_files

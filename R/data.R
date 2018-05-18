@@ -124,3 +124,14 @@
 #'
 #' @source StateCountyFips15jun17.Rda
 "valSets"
+#' @title Medication Names
+#'
+#' @description This table contains the Medication names Lisa McLeod's group are interested in .
+#'
+#' @format a \code{data.frame} with 1 variable
+#' \describe{
+#'   \item{GENERIC_MED_NAME}{(chr) Generic medication names that occur in the PRESCRIBING table}
+#'}
+#'
+#' @source StateCountyFips15jun17.Rda
+"med_names"
