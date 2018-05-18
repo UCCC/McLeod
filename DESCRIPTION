@@ -1,6 +1,6 @@
 Package: surg2rec
 Title: Package for generating tables from CHORDS data for Surgery to Recovery project
-Version: 0.0.0.9000
+Version: 0.0.0.9001
 Authors@R: c(
     person("Matthew", "Cox-Martin", email = "matthew.cox-martin@ucdenver.edu", role = c("aut", "cre"))
     )
@@ -12,7 +12,6 @@ Depends:
 Imports: 
     tidyverse,
     rmarkdown,
-    RODBC,
     odbc,
     knitr,
     dplyr,

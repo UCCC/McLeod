@@ -2,7 +2,6 @@
 
 export(run_report)
 import(DBI)
-import(RODBC)
 import(httr)
 import(knitr)
 import(odbc)
