@@ -45,11 +45,6 @@ con <- DBI::dbConnect(odbc::odbc(),
                       Server = params$DBServerName,
                       Database = params$DBName)
 
-con <- DBI::dbConnect(odbc::odbc(),
-                      Driver   = "SQL Server",
-                      Server   = "cc-s-d05.ucdenver.pvt",
-                      Database = "VDW_3_1_DH_0418")
-
 hospital <- ifelse(params$hospital == "CHCO", "Children's Hospital Colorado", "Denver Health")
 
 hospital <- "DH"
@@ -59,11 +54,11 @@ hospital <- "DH"
 
 ```
 
-#Opioid Prescription Refills Data Tables
+# Opioid Prescription Refills Data Tables
 
 The data below represent data pulled for the R18 grant application for Lisa McLeod.  The data in this report come from CHORDS, specifically from `r hospital`.  The server name from which the data are pulled is `r params$DBServerName` and the database is `r params$DBName`.  
 
-###Information about the data pull program 
+### Information about the data pull program 
 Hospital: `r hospital`
 Server Name: `r params$DBServerName`
 Database Name: `r params$DBName`
@@ -558,6 +553,8 @@ knitr::kable(tab2a4, col.names = c("Procedure Type", "Primary DX", "Count of DX"
 
 ##Table Pack 2B: Procedure Code Frequencies & LOS by Location
 
+This table prints the unique combinations of procedures for patients.  It only prints up to 10 procedures.
+
 ```{r, tab2b_data}
 
 tab2b <- odbc::dbGetQuery(con,
@@ -605,20 +602,27 @@ tab2b2 <- tab2b %>%
   left_join(., los_tab, by = "PERSON_ID") %>% 
   group_by(PERSON_ID) %>%
   mutate(
-    px_num = paste0("px_", 1:length(PERSON_ID))
+    px_num = paste0("px_", 1:length(PERSON_ID)),
+    num_pxs = (1:length(PERSON_ID))
   ) %>% 
   ungroup(.) 
 
-tab2b_wide <- tidyr::spread(tab2b2, px_num, PX) %>% 
-  mutate(
-    all_pxs = if_else(is.na(px_2), px_1,
-                      if_else(is.na(px_3), paste(px_1, px_2, sep = ", "),
-                              if_else(is.na(px_4), paste(px_1, px_2, px_3, sep = ", "),
-                                      if_else(is.na(px_5), paste(px_1, px_2, px_3, px_4, sep = ", "),
-                                              paste(px_1, px_2, px_3, px_4, px_5, sep = ", "))))) 
-  ) 
+num_pxs_all1 <- max(tab2b2$num_pxs)
+tab2b2$num_pxs_all <- num_pxs_all1
+num_pxs_all2 <- max(tab2b2$num_pxs) - 1
 
-table(tab2b_wide$all_pxs)
+tab2b_wide <- tab2b2 %>% 
+  dplyr::select(-num_pxs) %>% 
+  tidyr::spread(., px_num, PX)
+
+start_px <- tab2b_wide$px_1
+
+for(i in 1:num_pxs_all2){
+  start_px <- paste(start_px, tab2b_wide[[i+12]], sep = ", ")
+}
+
+tab2b_wide$all_pxs <- unlist(stringr::str_remove_all(start_px, ", NA"))
+
 
 #Get frequencies of px combinations
 tab2b_test <- as.data.frame(table(tab2b_wide$ProcedureType, tab2b_wide$all_pxs))
@@ -631,14 +635,9 @@ names(list_tab2b)
 px_tab <- data.frame(avg_los = unlist(lapply(list_tab2b,
                                       function(x) mean(as.numeric(tab2b_wide$los2[tab2b_wide$ProcedureType == x[[1]] & tab2b_wide$all_pxs == x[[2]]]), na.rm = T))))
 
-mean(as.numeric(tab2b_wide$los2[tab2b_wide$ProcedureType == list_tab2b[[58]][[1]] & tab2b_wide$all_pxs == list_tab2b[[58]][[2]]]), na.rm = T)
-
 #get medians for all uniqe combinations of pxs and px types
 px_tab2 <- data.frame(med_los = unlist(lapply(list_tab2b,
                                       function(x) median(as.numeric(tab2b_wide$los2[tab2b_wide$ProcedureType == x[[1]] & tab2b_wide$all_pxs == x[[2]]]), na.rm = T))))
-
-median(as.numeric(tab2b_wide[tab2b_wide$ProcedureType == list_tab2b[[1]][[1]] & tab2b_wide$all_pxs == list_tab2b[[1]][[2]],
-                                                              "los2"]), na.rm = T)
 
 tab2b3 <- bind_cols(tab2b_test, px_tab)
 tab2b4 <- bind_cols(tab2b3, px_tab2) %>%
