@@ -20,6 +20,6 @@ StateCountyFips15jun17.Rda
 codes
 }
 \description{
-This table contains the Medication names Lisa McLeod's group are interested in .
+This table contains the medication names Lisa McLeod's group are interested in.
 }
 \keyword{datasets}

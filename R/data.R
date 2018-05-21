@@ -137,7 +137,7 @@
 "med_names"
 #' @title Procedure codes
 #'
-#' @description This table contains the Medication names Lisa McLeod's group are interested in .
+#' @description This table contains the medication names Lisa McLeod's group are interested in.
 #'
 #' @format a \code{data.frame} with 1 variable
 #' \describe{
@@ -151,3 +151,14 @@
 #'
 #' @source StateCountyFips15jun17.Rda
 "codes"
+#' @title Medication Names 2
+#'
+#' @description This table contains the second list medication names Lisa McLeod's group are interested in.
+#'
+#' @format a \code{data.frame} with 1 variable
+#' \describe{
+#'   \item{GENERIC_MED_NAME}{(chr) Generic medication names that occur in the PRESCRIBING table}
+#'}
+#'
+#' @source StateCountyFips15jun17.Rda
+"med_names2"
