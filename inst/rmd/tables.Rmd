@@ -49,9 +49,6 @@ hospital <- ifelse(params$hospital == "CHCO", "Children's Hospital Colorado", "D
 
 hospital <- "DH"
 
-# codes <- readr::read_csv("Q:/MattCM/CHORDS/surg2rec/inclusion codes.csv")
-# devtools::use_data(codes, overwrite = T)
-
 ```
 
 # Opioid Prescription Refills Data Tables
@@ -140,7 +137,8 @@ states <- surg2rec::stateCnty
 med_names <- surg2rec::med_names
 
 # second list of medication names
-read
+med_names2 <- read.csv("Q:/MattCM/CHORDS/surg2rec/med-names2.csv")
+# med_names2 <- surg2rec::med_names2
 
 #Create long version of codes file
 codes2 <- codes %>% 
@@ -1023,27 +1021,86 @@ ht_wt <- tab1b2 %>%
 
 tab4a2 <- tab4a %>% 
   mutate(
-    med_use = if_else(GENERIC_MED_NAME %in% med_names$GENERIC_MED_NAME, 1, 0)
+    med_use  = if_else(GENERIC_MED_NAME %in% med_names$GENERIC_MED_NAME, 1, 0),
+    med_use2 = if_else(GENERIC_MED_NAME %in% med_names2$GENERIC_MED_NAME, 1, 0)
   ) %>% 
   dplyr::filter(med_use == 1) %>% 
-  dplyr::left_join(ht_wt, by = "PERSON_ID") %>% 
+  dplyr::left_join(ht_wt, by = "PERSON_ID") 
+
+
+  
+# 
+# tab4_test <- as.data.frame(table(tab4a2$ProcedureType, tab4a2$PERSON_ID, tab4a2$GENERIC_MED_NAME))
+# 
+# list_tab4 <- split(tab4_test[, c(1,2)], seq(nrow(tab4_test[, c(1,2)])))
+# 
+# rx_tab <- data.frame(avg_los = unlist(lapply(list_tab4, 
+#                                       function(x) mean(tab4a2[tab4a2$ProcedureType == x[[1]] & tab4a2$GENERIC_MED_NAME == x[[2]],
+#                                                               "los2"], na.rm = T))))
+# 
+# rx_tab2 <- data.frame(med_los = unlist(lapply(list_tab4, 
+#                                       function(x) median(tab4a2[tab4a2$ProcedureType == x[[1]] & tab4a2$GENERIC_MED_NAME == x[[2]],
+#                                                               "los2"], na.rm = T))))
+# 
+# tab4a3 <- bind_cols(tab4_test, rx_tab)
+# tab4a4 <- bind_cols(tab4a3, rx_tab2) %>% 
+#   dplyr::rename(ProcedureType = Var1, GENERIC_MED_NAME = Var2)
   
 
-tab4_test <- as.data.frame(table(tab4a2$ProcedureType, tab4a2$GENERIC_MED_NAME))
+tab4a2_2 <- tab4a2 %>% 
+  dplyr::filter(med_use2 == 1)
 
-list_tab4 <- split(tab2_test[, c(1,2)], seq(nrow(tab2_test[, c(1,2)])))
+tab4_test2 <- as.data.frame(table(tab4a2_2$ProcedureType, tab4a2_2$PERSON_ID, tab4a2_2$GENERIC_MED_NAME))
 
-rx_tab <- data.frame(avg_los = unlist(lapply(list_tab4, 
-                                      function(x) mean(tab4a2[tab4a2$ProcedureType == x[[1]] & tab4a2$GENERIC_MED_NAME == x[[2]],
-                                                              "los2"], na.rm = T))))
 
-rx_tab2 <- data.frame(med_los = unlist(lapply(list_tab4, 
-                                      function(x) median(tab4a2[tab4a2$ProcedureType == x[[1]] & tab4a2$GENERIC_MED_NAME == x[[2]],
-                                                              "los2"], na.rm = T))))
+tab4_sub <- tab4_test2 %>% 
+  arrange(Var3) 
 
-tab2a3 <- bind_cols(tab4_test, rx_tab)
-tab2a4 <- bind_cols(tab2a3, rx_tab2) %>% 
-  dplyr::rename(ProcedureType = Var1, GENERIC_MED_NAME = Var2)
-  
+tab4_wide <- spread(tab4_sub, key = Var3, value = Freq)
+
+lapply(3:ncol(tab4_wide), function(x) 
+  ggplot(data = tab4_wide, aes(x = tab4_wide[[x]])) +
+         geom_histogram(color="black", fill="red", binwidth = 1) +
+    ggtitle(names(tab4_wide)[x]) +
+    theme(axis.title.x = element_blank())
+    ) 
+
+tab4_test3 <- as.data.frame(table(tab4a2_2$GENERIC_MED_NAME, tab4a2_2$RX_DAYS_SUPPLY))
+
+tab4_wide <- spread(tab4_test3, key = Var1, value = Freq) %>% 
+  dplyr::rename(Days = Var2)
+
+tab4_plot <- ggplot(data = tab4_test3, aes(x = Var2, y = Freq, group = as.factor(Var1))) +
+  geom_line(aes(color = as.factor(Var1)))
+
+p <- plotly::ggplotly(tab4_plot)
+plotly::api_create(p, filenaame = "dist-rx-day-supply")
+
+lapply(2:ncol(tab4_wide), function(x) 
+  ggplot(data = tab4_wide, aes(x = Var2, y = fig1_wide[[x]])) +
+         geom_line() +
+    ggtitle(names(fig1_wide)[x]) +
+    theme(axis.text.x = element_text(angle=45, margin(b = .5), vjust = .5)) +
+    scale_x_date(date_labels = "%b %y",date_breaks='1 year') +
+    xlab("Date") + ylab("Number of Records") +
+    theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),  
+        axis.line = element_line(colour = "black"),
+        axis.title = element_text(size = 16, face = "bold"),
+        axis.text = element_text(size = 14, face = "bold"),
+        plot.title = element_text(hjust = 0.5, size = 20))
+    ) 
+
+tab4_test4 <- as.data.frame(table(tab4a2_2$PERSON_ID, tab4a2_2$GENERIC_MED_NAME, tab4a2_2$RX_DAYS_SUPPLY)) %>% 
+  arrange(Var1) %>% 
+  dplyr::filter(Freq != 0) %>% 
+  group_by(Var1) %>% 
+  mutate(
+    max_days = max(as.numeric(as.character(Var3))),
+    days_supply2 = as.numeric(as.character(Var3))
+  ) %>% 
+  dplyr::filter(Var3 == max_days)
+
 
 ```
