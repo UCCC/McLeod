@@ -981,6 +981,11 @@ tab4a <- odbc::dbGetQuery(con,
       MAX(CASE
                WHEN z.PX IN('0WU80JZ', '0WU84JZ', '34.74', '21740', '21742', '21743')
                THEN 1 ELSE 0 END) AS pectus,
+      DATEDIFF(YY, a.BIRTH_DATE, z.ADATE) - CASE
+                      WHEN DATEADD(YY, DATEDIFF(YY, a.BIRTH_DATE, z.ADATE), a.BIRTH_DATE) > z.ADATE
+                      THEN 1
+                      ELSE 0 
+                  END AS [AGE],
       z.PROCDATE,
       YEAR(z.ADATE) as px_date
 
@@ -1013,7 +1018,11 @@ GROUP BY z.ENC_ID,
         d.RX_QUANTITY_UNIT,
         d.RX_REFILLS,
         d.RX_DAYS_SUPPLY,
-        d.RX_FREQUENCY, d.GENERIC_MED_NAME, z.PROCDATE, YEAR(z.ADATE)"
+        d.RX_FREQUENCY, d.GENERIC_MED_NAME, z.PROCDATE, YEAR(z.ADATE), DATEDIFF(YY, a.BIRTH_DATE, z.ADATE) - CASE
+                      WHEN DATEADD(YY, DATEDIFF(YY, a.BIRTH_DATE, z.ADATE), a.BIRTH_DATE) > z.ADATE
+                      THEN 1
+                      ELSE 0 
+                  END"
 )
 
 ht_wt <- tab1b2 %>% 
@@ -1050,74 +1059,50 @@ tab4a2 <- tab4a %>%
 tab4a2_2 <- tab4a2 %>% 
   dplyr::filter(med_use2 == 1)
 
-tab4_test2 <- as.data.frame(table(tab4a2_2$ProcedureType, tab4a2_2$PERSON_ID, tab4a2_2$GENERIC_MED_NAME))
+tab4_test2 <- as.data.frame(table(tab4a2_2$ProcedureType, tab4a2_2$px_date, tab4a2_2$PERSON_ID, tab4a2_2$GENERIC_MED_NAME, tab4a2_2$RX_DAYS_SUPPLY))
 
 
-tab4_sub <- tab4_test2 %>% 
-  arrange(Var3) 
+# lapply(3:ncol(tab4_wide), function(x) 
+#   ggplot(data = tab4_wide, aes(x = tab4_wide[[x]])) +
+#          geom_histogram(color="black", fill="red", binwidth = 1) +
+#     ggtitle(names(tab4_wide)[x]) +
+#     theme(axis.title.x = element_blank())
+#     ) 
 
-tab4_wide <- spread(tab4_sub, key = Var3, value = Freq)
 
-lapply(3:ncol(tab4_wide), function(x) 
-  ggplot(data = tab4_wide, aes(x = tab4_wide[[x]])) +
-         geom_histogram(color="black", fill="red", binwidth = 1) +
-    ggtitle(names(tab4_wide)[x]) +
-    theme(axis.title.x = element_blank())
-    ) 
 
-tab4_test3 <- as.data.frame(table(tab4a2_2$GENERIC_MED_NAME, tab4a2_2$RX_DAYS_SUPPLY))
+tab4_wide <- spread(tab4_test2, key = Var4, value = Freq) %>% 
+  dplyr::rename(Days = Var5)
 
-tab4_wide <- spread(tab4_test3, key = Var1, value = Freq) %>% 
-  dplyr::rename(Days = Var2)
+# tab4_plot <- ggplot(data = tab4_test2, aes(x = Var4, y = Freq, group = as.factor(Var1))) +
+#   geom_line(aes(color = as.factor(Var1)))
 
-tab4_plot <- ggplot(data = tab4_test3, aes(x = Var2, y = Freq, group = as.factor(Var1))) +
-  geom_line(aes(color = as.factor(Var1)))
-
-p <- plotly::ggplotly(tab4_plot)
-plotly::api_create(p, filenaame = "dist-rx-day-supply")
-
-lapply(2:ncol(tab4_wide), function(x) 
-  ggplot(data = tab4_wide, aes(x = Var2, y = fig1_wide[[x]])) +
-         geom_line() +
-    ggtitle(names(fig1_wide)[x]) +
-    theme(axis.text.x = element_text(angle=45, margin(b = .5), vjust = .5)) +
-    scale_x_date(date_labels = "%b %y",date_breaks='1 year') +
-    xlab("Date") + ylab("Number of Records") +
-    theme(panel.grid.major = element_blank(), 
-        panel.grid.minor = element_blank(),
-        panel.background = element_blank(),  
-        axis.line = element_line(colour = "black"),
-        axis.title = element_text(size = 16, face = "bold"),
-        axis.text = element_text(size = 14, face = "bold"),
-        plot.title = element_text(hjust = 0.5, size = 20))
-    ) 
-
-tab4_test4 <- as.data.frame(table(tab4a2_2$PERSON_ID, tab4a2_2$GENERIC_MED_NAME, tab4a2_2$RX_DAYS_SUPPLY)) %>% 
+tab4_test4 <- tab4_test2 %>% 
   arrange(Var1) %>% 
   dplyr::filter(Freq != 0) %>% 
-  group_by(Var1, Var2) %>% 
+  group_by(Var1, Var2, Var3, Var4) %>% 
   mutate(
-    max_days = max(as.numeric(as.character(Var3))),
-    days_supply2 = as.numeric(as.character(Var3))
+    max_days = max(as.numeric(as.character(Var5))),
+    days_supply2 = as.numeric(as.character(Var5))
   ) %>% 
-  dplyr::filter(Var3 == max_days) %>% 
+  dplyr::filter(Var5 == max_days) %>% 
   dplyr::ungroup(.) 
 
-ggplot(data = tab4_test4, aes(x = as.factor(Var2), y = days_supply2)) +
-  geom_boxplot() + stat_summary(fun.y=mean, geom= "point", shape = 17) +
-  ylab("RX_DAYS_SUPPLY") + xlab("GENERIC_MED_NAME") + coord_flip()
+# ggplot(data = tab4_test4, aes(x = as.factor(Var2), y = days_supply2)) +
+#   geom_boxplot() + stat_summary(fun.y=mean, geom= "point", shape = 17) +
+#   ylab("RX_DAYS_SUPPLY") + xlab("GENERIC_MED_NAME") + coord_flip()
 
 tab4_test_wide <- tab4_test4 %>% 
-  select(Var1, Var2, days_supply2) %>% 
-  spread(., Var2, days_supply2)
+  select(Procedure_Type = Var1, Year = Var2, PERSON_ID = Var3, GENERIC_MED_NAME = Var4, Days = Var5, days_supply2) %>% 
+  spread(., GENERIC_MED_NAME, days_supply2)
 
-tab4_nums <- data.frame(num_obs = unlist(lapply(2:ncol(tab4_test_wide), 
+tab4_nums <- data.frame(num_obs = unlist(lapply(5:ncol(tab4_test_wide), 
                                          function(x) table(!is.na(tab4_test_wide[[x]]))[2])))
 
 use_vars <- which(!(tab4_nums$num_obs %in% 1))
 
-lapply(2:ncol(tab4_test_wide), function(x) 
-  ggplot(data = tab4_test_wide, aes(x = "", y = tab4_test_wide[[x]])) + 
+lapply(5:ncol(tab4_test_wide), function(x) 
+  ggplot(data = tab4_test_wide, aes(x = Year, y = tab4_test_wide[[x]], fill = Procedure_Type)) + 
     geom_boxplot() +
     stat_summary(fun.y=mean, geom= "point", shape = 17) +
     ylab("RX_DAYS_SUPPLY") +
