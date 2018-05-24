@@ -957,7 +957,7 @@ knitr::kable(tab3b, col.names = c("Physician ID", "Num Cohort S", "Num Spine PXs
 
 # Data Tables Protocol: Table Set 4: Rx Information
 
-## Table 4A Basic RX Information on Patient Discharge post Index Procedure
+## Table 4A: Basic RX Information on Patient Discharge post Index Procedure
 
 ```{r tab4a_data, fig.height=10, fig.width=15}
 
@@ -966,6 +966,7 @@ tab4a <- odbc::dbGetQuery(con,
         DISTINCT z.ENC_ID,
         z.PERSON_ID,
         z.PROVIDER,
+        z.PERFORMINGPROVIDER,
         d.RXMD,
         d.RX_ORDER_DATE,
         d.RX_QUANTITY,
@@ -975,6 +976,7 @@ tab4a <- odbc::dbGetQuery(con,
         d.RX_DAYS_SUPPLY,
         d.RX_FREQUENCY,
         d.GENERIC_MED_NAME,
+        e.SPECIALTY,
        MAX(CASE
                WHEN z.PX IN('0RG4070', '0RG4071', '0RG407J', '0RG40A0', '0RG40A1', '0RG40AJ', '0RG40J0', '0RG40J1', '0RG40JJ', '0RG40K0', '0RG40K1', '0RG40KJ', '0RG40Z0', '0RG40Z1', '0RG40ZJ', '0RG6070', '0RG6071', '0RG607J', '0RG60A0', '0RG60A1', '0RG60AJ', '0RG60J0', '0RG60J1', '0RG60JJ', '0RG60K0', '0RG60K1', '0RG60KJ', '0RG60Z0', '0RG60Z1', '0RG60ZJ', '0RG7070', '0RG7071', '0RG707J', '0RG70A0', '0RG70A1', '0RG70AJ', '0RG70J0', '0RG70J1', '0RG70JJ', '0RG70K0', '0RG70K1', '0RG70KJ', '0RG70Z0', '0RG70Z1', '0RG70ZJ', '0RG8070', '0RG8071', '0RG807J', '0RG80A0', '0RG80A1', '0RG80AJ', '0RG80J0', '0RG80J1', '0RG80JJ', '0RG80K0', '0RG80K1', '0RG80KJ', '0RG80Z0', '0RG80Z1', '0RG80ZJ', '0RGA070', '0RGA071', '0RGA07J', '0RGA0A0', '0RGA0A1', '0RGA0AJ', '0RGA0J0', '0RGA0J1', '0RGA0JJ', '0RGA0K0', '0RGA0K1', '0RGA0KJ', '0RGA0Z0', '0RGA0Z1', '0RGA0ZJ', '0SG0070', '0SG0071', '0SG007J', '0SG00A0', '0SG00A1', '0SG00AJ', '0SG00J0', '0SG00J1', '0SG00JJ', '0SG00K0', '0SG00K1', '0SG00KJ', '0SG00Z0', '0SG00Z1', '0SG00ZJ', '0SG1070', '0SG1071', '0SG107J', '0SG10A0', '0SG10A1', '0SG10AJ', '0SG10J0', '0SG10J1', '0SG10JJ', '0SG10K0', '0SG10K1', '0SG10KJ', '0SG10Z0', '0SG10Z1', '0SG10ZJ', '0SG3070', '0SG3071', '0SG307J', '0SG30A0', '0SG30A1', '0SG30AJ', '0SG30J0', '0SG30J1', '0SG30JJ', '0SG30K0', '0SG30K1', '0SG30KJ', '0SG30Z0', '0SG30Z1', '0SG30ZJ', '81', '81.01', '81.02', '81.03', '81.04', '81.05', '81.06', '81.07', '81.08', '81.09', '81.3', '81.35', '81.36', '81.37', '81.38', '81.39', '81.61', '81.62', '81.63', '81.64', '84.51', '22532', '22533', '22548', '22551', '22554', '22556', '22558', '22586', '22590', '22595', '22600', '22610', '22612', '22614', '22630', '22633', '22634', '22800', '22802', '22804', '22808', '22810', '22812', '22818', '22819', '22830', '22840', '22841', '22842', '22843', '22844', '22845', '22846', '22847', '22848', '22849', '22850', '22852', '22853', '22854', '22855', '22856', '22857', '22858', '22859', '22861', '22862', '22864', '22865', '22867', '22868', '22869', '22870')
                THEN 1 ELSE 0 END) AS spine,
@@ -995,6 +997,8 @@ FROM
               ON z.PERSON_ID = a.PERSON_ID
          LEFT JOIN [PRESCRIBING] d
               ON z.PERSON_ID = d.PERSON_ID AND z.ENC_ID = d.ENC_ID
+         LEFT JOIN [PROVIDER_SPECIALTY] e
+              ON z.PERFORMINGPROVIDER = e.PROVIDER
     WHERE  z.ADATE >= '01/01/2011'
             AND DATEDIFF(YY, a.BIRTH_DATE, z.ADATE) - CASE
                        WHEN DATEADD(YY, DATEDIFF(YY, a.BIRTH_DATE, z.ADATE), a.BIRTH_DATE) > z.ADATE
@@ -1011,6 +1015,8 @@ FROM
 GROUP BY z.ENC_ID,
         z.PERSON_ID,
         z.PROVIDER,
+        z.PERFORMINGPROVIDER,
+        e.SPECIALTY,
         d.RXMD,
         d.RX_ORDER_DATE,
         d.RX_QUANTITY,
@@ -1033,7 +1039,7 @@ tab4a2 <- tab4a %>%
     med_use  = if_else(GENERIC_MED_NAME %in% med_names$GENERIC_MED_NAME, 1, 0),
     med_use2 = if_else(GENERIC_MED_NAME %in% med_names2$GENERIC_MED_NAME, 1, 0)
   ) %>% 
-  dplyr::filter(med_use == 1) %>% 
+  dplyr::filter(med_use2 == 1) %>% 
   dplyr::left_join(ht_wt, by = "PERSON_ID") 
 
 
@@ -1056,10 +1062,7 @@ tab4a2 <- tab4a %>%
 #   dplyr::rename(ProcedureType = Var1, GENERIC_MED_NAME = Var2)
   
 
-tab4a2_2 <- tab4a2 %>% 
-  dplyr::filter(med_use2 == 1)
-
-tab4_test2 <- as.data.frame(table(tab4a2_2$ProcedureType, tab4a2_2$px_date, tab4a2_2$PERSON_ID, tab4a2_2$GENERIC_MED_NAME, tab4a2_2$RX_DAYS_SUPPLY))
+tab4_test2 <- as.data.frame(table(tab4a2$ProcedureType, tab4a2$px_date, tab4a2$PERSON_ID, tab4a2$GENERIC_MED_NAME, tab4a2$RX_DAYS_SUPPLY))
 
 
 # lapply(3:ncol(tab4_wide), function(x) 
@@ -1068,8 +1071,6 @@ tab4_test2 <- as.data.frame(table(tab4a2_2$ProcedureType, tab4a2_2$px_date, tab4
 #     ggtitle(names(tab4_wide)[x]) +
 #     theme(axis.title.x = element_blank())
 #     ) 
-
-
 
 tab4_wide <- spread(tab4_test2, key = Var4, value = Freq) %>% 
   dplyr::rename(Days = Var5)
@@ -1086,6 +1087,7 @@ tab4_test4 <- tab4_test2 %>%
     days_supply2 = as.numeric(as.character(Var5))
   ) %>% 
   dplyr::filter(Var5 == max_days) %>% 
+  dplyr::filter(days_supply2 <= 100) %>% 
   dplyr::ungroup(.) 
 
 # ggplot(data = tab4_test4, aes(x = as.factor(Var2), y = days_supply2)) +
@@ -1105,7 +1107,7 @@ lapply(5:ncol(tab4_test_wide), function(x)
   ggplot(data = tab4_test_wide, aes(x = Year, y = tab4_test_wide[[x]], fill = Procedure_Type)) + 
     geom_boxplot() +
     stat_summary(fun.y=mean, geom= "point", shape = 17) +
-    ylab("RX_DAYS_SUPPLY") +
+    ylab("RX_DAYS_SUPPLY") + xlab("YEAR") +
     ggtitle(names(tab4_test_wide)[x]) +
       theme(axis.title.x = element_blank(),
         axis.title = element_text(size = 16, face = "bold"),
@@ -1115,11 +1117,12 @@ lapply(5:ncol(tab4_test_wide), function(x)
 
 ```
 
-## Table 4B
+
+## Table 4B: Procedure, Dose and Age (Initial Narcotic Prescription Only)
 
 ```{r tab4b_data, fig.height=10, fig.width=15}
 
-tab4b_test <- as.data.frame(table(tab4a2_2$ProcedureType, tab4a2_2$AGE, tab4a2_2$PERSON_ID, tab4a2_2$GENERIC_MED_NAME, tab4a2_2$RX_DAYS_SUPPLY))
+tab4b_test <- as.data.frame(table(tab4a2$ProcedureType, tab4a2$AGE, tab4a2$PERSON_ID, tab4a2$GENERIC_MED_NAME, tab4a2$RX_DAYS_SUPPLY))
 
 tab4_wide <- spread(tab4b_test, key = Var4, value = Freq) %>% 
   dplyr::rename(Days = Var5)
@@ -1132,7 +1135,8 @@ tab4b_test4 <- tab4b_test %>%
     max_days = max(as.numeric(as.character(Var5))),
     days_supply2 = as.numeric(as.character(Var5))
   ) %>% 
-  dplyr::filter(Var5 == max_days) %>% 
+  dplyr::filter(Var5 == max_days) %>%
+  dplyr::filter(days_supply2 <= 100) %>% 
   dplyr::ungroup(.) 
 
 tab4b_test_wide <- tab4b_test4 %>% 
@@ -1148,13 +1152,160 @@ lapply(5:ncol(tab4b_test_wide), function(x)
   ggplot(data = tab4b_test_wide, aes(x = Age, y = tab4b_test_wide[[x]], fill = Procedure_Type)) + 
     geom_boxplot() +
     stat_summary(fun.y=mean, geom= "point", shape = 17) +
-    ylab("RX_DAYS_SUPPLY") +
+    ylab("RX_DAYS_SUPPLY") + xlab("AGE") + 
     ggtitle(names(tab4b_test_wide)[x]) +
       theme(axis.title.x = element_blank(),
         axis.title = element_text(size = 16, face = "bold"),
         axis.text = element_text(size = 14, face = "bold"),
         plot.title = element_text(hjust = 0.5, size = 20))
 )
+
+
+```
+
+## Table 4C: Rx Information by Prescribing Provider for All Narcotic Prescriptions (NRC=Y)
+Where percent prescribed per total patient volume per procedure type of included population subset)
+
+```{r tab4c_data, fig.height=10, fig.width=15}
+
+tab4c <- tab4a2 
+
+tab4c_sum <- as.data.frame(table(tab4a2$ProcedureType, tab4a2$RXMD, tab4a2$GENERIC_MED_NAME, tab4a2$RX_DAYS_SUPPLY))
+
+tab4c_test <- tab4c_sum %>% 
+  arrange(Var3) %>% 
+  dplyr::filter(Freq != 0) %>% 
+  group_by(Var1, Var2, Var3) %>% 
+  mutate(
+    max_days = max(as.numeric(as.character(Var4))),
+    days_supply2 = as.numeric(as.character(Var4))
+  ) %>% 
+  dplyr::filter(Var4 == max_days) %>% 
+  dplyr::filter(days_supply2 <= 100) %>% 
+  dplyr::ungroup(.) 
+
+tab4c_test_wide <- tab4c_test %>% 
+  select(Procedure_Type = Var1, rxmd = Var2, GENERIC_MED_NAME = Var3, Days = Var4, days_supply2) %>% 
+  spread(., GENERIC_MED_NAME, days_supply2)
+
+tab4c_nums <- data.frame(num_obs = unlist(lapply(5:ncol(tab4c_test_wide), 
+                                         function(x) table(!is.na(tab4c_test_wide[[x]]))[2])))
+
+use_vars3 <- which(!(tab4c_nums$num_obs %in% 1))
+
+lapply(4:ncol(tab4c_test_wide), function(x) 
+  ggplot(data = tab4c_test_wide, aes(x = rxmd, y = tab4c_test_wide[[x]], fill = Procedure_Type)) + 
+    geom_boxplot() +
+    stat_summary(fun.y=mean, geom= "point", shape = 17) +
+    ylab("RX_DAYS_SUPPLY") + xlab("Prescribing Provider") +
+    ggtitle(names(tab4c_test_wide)[x]) +
+      theme(
+        axis.title = element_text(size = 16, face = "bold"),
+        axis.text.y = element_text(size = 14, face = "bold"),
+        plot.title = element_text(hjust = 0.5, size = 20),
+        axis.text.x = element_text(angle=90, margin(b = .5), vjust = .5))
+)
+
+#psych::describeBy(tab4c_test_wide, group = list(tab4c_test_wide$Procedure_Type, tab4c_test_wide$perf_prov))
+
+```
+
+## Table 4D: Prescrition supply days by medication and provider specialty
+
+```{r tab4d_data, fig.height=10, fig.width=15}
+
+tab4d <- tab4a2 
+
+tab4d_sum <- as.data.frame(table(tab4a2$ProcedureType, tab4a2$SPECIALTY, tab4a2$GENERIC_MED_NAME, tab4a2$RX_DAYS_SUPPLY))
+
+tab4d_test <- tab4d_sum %>% 
+  arrange(Var3) %>% 
+  dplyr::filter(Freq != 0) %>% 
+  group_by(Var1, Var2, Var3) %>% 
+  mutate(
+    max_days = max(as.numeric(as.character(Var4))),
+    days_supply2 = as.numeric(as.character(Var4))
+  ) %>% 
+  dplyr::filter(Var4 == max_days) %>% 
+  dplyr::filter(days_supply2 <= 100) %>% 
+  dplyr::ungroup(.) 
+
+tab4d_test_wide <- tab4d_test %>% 
+  select(Procedure_Type = Var1, specialty = Var2, GENERIC_MED_NAME = Var3, Days = Var4, days_supply2) %>% 
+  spread(., GENERIC_MED_NAME, days_supply2)
+
+tab4d_nums <- data.frame(num_obs = unlist(lapply(4:ncol(tab4d_test_wide), 
+                                         function(x) table(!is.na(tab4d_test_wide[[x]]))[2])))
+
+use_vars4 <- which(!(tab4d_nums$num_obs %in% 1))
+
+lapply(4:ncol(tab4d_test_wide), function(x) 
+  ggplot(data = tab4d_test_wide, aes(x = specialty, y = tab4d_test_wide[[x]], fill = Procedure_Type)) + 
+    geom_boxplot() +
+    stat_summary(fun.y=mean, geom= "point", shape = 17) +
+    ylab("RX_DAYS_SUPPLY") + xlab("Performing Provider Specialty") +
+    ggtitle(names(tab4d_test_wide)[x]) +
+      theme(
+        axis.title = element_text(size = 16, face = "bold"),
+        axis.text = element_text(size = 14, face = "bold"),
+        plot.title = element_text(hjust = 0.5, size = 20),
+        axis.text.x = element_text(angle=45, margin(b = .5), vjust = .5))
+)
+
+#psych::describeBy(tab4c_test_wide, group = list(tab4c_test_wide$Procedure_Type, tab4c_test_wide$perf_prov))
+
+```
+
+## Table 4E: RX Refills
+
+```{r tab4e_data}
+
+tab4e_sum <- as.data.frame(table(tab4a2$ProcedureType, tab4a2$PERSON_ID, tab4a2$GENERIC_MED_NAME, tab4a2$RX_DAYS_SUPPLY))
+
+refill_data <- tab4a %>% 
+  select(PERSON_ID, GENERIC_MED_NAME, RX_DAYS_SUPPLY, RX_REFILLS) %>% 
+  mutate(
+    RX_DAYS_SUPPLY = as.numeric(as.character(RX_DAYS_SUPPLY)),
+    RX_REFILLS = as.numeric(as.character(RX_REFILLS))
+  )
+
+tab4e_test <- tab4e_sum %>% 
+  arrange(Var3) %>% 
+  dplyr::filter(Freq != 0) %>% 
+  group_by(Var1, Var2, Var3) %>% 
+  mutate(
+    max_days = max(as.numeric(as.character(Var4))),
+    days_supply2 = as.numeric(as.character(Var4))
+  ) %>% 
+  dplyr::filter(Var4 == max_days) %>% 
+  dplyr::filter(days_supply2 <= 100) %>% 
+  dplyr::ungroup(.) %>% 
+  select(Procedure_Type = Var1, PERSON_ID = Var2, GENERIC_MED_NAME = Var3, RX_DAYS_SUPPLY = days_supply2) %>% 
+  left_join(., refill_data, by = c("PERSON_ID", "GENERIC_MED_NAME", "RX_DAYS_SUPPLY"))
+
+tab4e_test <- tab4e_test[!duplicated(tab4e_test[c(2, 3)]),]
+
+tab4e_test_wide <- tab4e_test %>% 
+  select(-RX_DAYS_SUPPLY) %>% 
+  spread(., GENERIC_MED_NAME, RX_REFILLS)
+
+tab4e_nums <- data.frame(num_obs = unlist(lapply(2:ncol(tab4d_test_wide), 
+                                         function(x) table(!is.na(tab4d_test_wide[[x]]))[2])))
+
+use_vars5 <- which(!(tab4e_nums$num_obs %in% 1))
+
+ggplot(data = tab4e_test, aes(x = GENERIC_MED_NAME, 
+                                   y = RX_REFILLS, 
+                                   fill = Procedure_Type)) + 
+    geom_boxplot() +
+    stat_summary(fun.y=mean, geom= "point", shape = 17) +
+    xlab("GENERIC_MED_NAME") + ylab("RX_REFILLS") +
+    coord_flip() +
+    ggtitle(names("RX_REFILLS by GENERIC_MED_NAME")) +
+      theme(
+        axis.title = element_text(size = 16, face = "bold"),
+        axis.text.x = element_text(size = 14, face = "bold"),
+        plot.title = element_text(hjust = 0.5, size = 20))
 
 
 ```
