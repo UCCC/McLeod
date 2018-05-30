@@ -55,6 +55,12 @@ hospital <- "DH"
 
 The data below represent data pulled for the R18 grant application for Lisa McLeod.  The data in this report come from CHORDS, specifically from `r hospital`.  The server name from which the data are pulled is `r params$DBServerName` and the database is `r params$DBName`.  
 
+## Reading this report
+
+The data in this report was generated via **R** and **RStudio**.  This code is intended to be use on different and changing Databases.  As such, some values in the table may be missing or could not be computed with the available data.  Values such as `NA` are considered missing.  Values with `NaN` are "Not a Number".  Median values that are computed on two data points, will be the same as the average.  
+
+If the code produces and error, this will appear in the Console.  Please copy and paste the error in the "Issues" section of the github site for this package located here http://github.com/UCC/McLeod/issues.  
+
 ### Information about the data pull program 
 Hospital: `r hospital`
 Server Name: `r params$DBServerName`
@@ -632,13 +638,12 @@ tab2b_test <- as.data.frame(table(tab2b_wide$ProcedureType, tab2b_wide$all_pxs))
 
 # Create a list of unique pxs and px types to cycle through to get means and medians
 list_tab2b <- split(tab2b_test[, c(1,2)], seq(nrow(tab2b_test[, c(1,2)])))
-names(list_tab2b)
 
-#get means for all uniqe combinations of pxs and px types
+#get means for all unique combinations of pxs and px types
 px_tab <- data.frame(avg_los = unlist(lapply(list_tab2b,
                                       function(x) mean(as.numeric(tab2b_wide$los2[tab2b_wide$ProcedureType == x[[1]] & tab2b_wide$all_pxs == x[[2]]]), na.rm = T))))
 
-#get medians for all uniqe combinations of pxs and px types
+#get medians for all unique combinations of pxs and px types
 px_tab2 <- data.frame(med_los = unlist(lapply(list_tab2b,
                                       function(x) median(as.numeric(tab2b_wide$los2[tab2b_wide$ProcedureType == x[[1]] & tab2b_wide$all_pxs == x[[2]]]), na.rm = T))))
 
@@ -907,7 +912,7 @@ knitr::kable(tab3a2_prov, col.names = c("Year", "Provider Specialty", "Cohort Sp
 
 ## Table Pack 3B: Surgeon Demographics per Facility
 
-The Counts for both Spine and Pectus are for any age of patient.
+The counts for both Spine and Pectus are for any age of patient.
 
 ```{r tab3b_data}
 
@@ -963,7 +968,7 @@ Boxplots in the following figures show the median (line in the middle of the box
 
 Tables and figures in this section represent the medications with the highest number of supply days.  For example, if a patient had had multiple Oxycodone HCL prescriptions within the same encounter, the one with the highest RX_DAYS_SUPPLY value.  This was done based on the assumption that the values with the higher RX_DAYS_SUPPLY would be the prescription at discharge.  
 
-```{r tab4a_data, fig.height=10, fig.width=15}
+```{r tab4a_data, fig.height=8, fig.width=15}
 
 tab4a <- odbc::dbGetQuery(con,
        "SELECT
@@ -1374,22 +1379,23 @@ tab4f2 <- tab4f[!duplicated(tab4f[c(2, 3, 4)]),]
 
 tab4f_vals <- tab4f2 %>% 
   dplyr::select(Procedure_Type, GENERIC_MED_NAME) %>% 
-  dplyr::filter(!duplicated(GENERIC_MED_NAME)) %>% 
-  list(.)
+  dplyr::filter(!duplicated(GENERIC_MED_NAME)) 
 
 list_tab4f <- split(tab4f_vals[, c(1,2)], seq(nrow(tab4f_vals[, c(1,2)])))
 
-rx_tab <- data.frame(avg_age = unlist(lapply(list_tab4f, 
-                                             function(x) mean(as.numeric(tab4f2$AGE[tab4f2$ProcedureType == x[[1]][[1]] & tab4f2$GENERIC_MED_NAME == x[[1]][[2]]), na.rm = T))))
+list_tab4f <- lapply(list_tab4f, as.data.frame)
 
-rx_tab2 <- data.frame(med_age = unlist(lapply(list_tab4f, 
-                                              function(x) median(as.numeric(tab4f2[tab4f2$ProcedureType == x[[1]][[1]] & tab4f2$GENERIC_MED_NAME == x[[1]][[2]],
-                                                                                  "AGE"]), na.rm = T))))
+rx_tab <- data.frame(avg_age = unlist(lapply(1:length(list_tab4f), 
+                                             function(x) mean(as.numeric(tab4f2$AGE[tab4f2$ProcedureType == list_tab4f[x][[1]][[1]] & tab4f2$GENERIC_MED_NAME == list_tab4f[x][[1]][[2]]]), na.rm = T))))
+
+rx_tab2 <- data.frame(med_age = unlist(lapply(1:length(list_tab4f), 
+                                              function(x) median(as.numeric(tab4f2$AGE[tab4f2$ProcedureType == list_tab4f[x][[1]][[1]] & tab4f2$GENERIC_MED_NAME == list_tab4f[x][[1]][[2]]]), 
+                                                              na.rm = T))))
 
 tab4f2 <- bind_cols(tab4f_vals, rx_tab)
 tab4f3 <- bind_cols(tab4f2, rx_tab2) 
 
-mean(as.numeric(tab4f2$AGE[tab4f2$Procedure_Type == list_tab4f[[3]][[1]] & tab4f2$GENERIC_MED_NAME == list_tab4f[[3]][[2]]]), na.rm = T)
+mean(as.numeric(tab4f2$AGE[tab4f2$Procedure_Type == list_tab4f[3][[1]][[1]] & tab4f2$GENERIC_MED_NAME == list_tab4f[3][[1]][[2]]]), na.rm = T)
 
-
+list_tab4f
 ```
