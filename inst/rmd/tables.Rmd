@@ -143,11 +143,10 @@ states <- surg2rec::stateCnty
 med_names <- surg2rec::med_names
 
 # second list of medication names
-med_names2 <- read.csv("Q:/MattCM/CHORDS/surg2rec/med-names2.csv")
-# med_names2 <- surg2rec::med_names2
+med_names2 <- surg2rec::med_names2
 
-med_names3 <- read.csv("Q:/MattCM/CHORDS/surg2rec/med-names3.csv")
-# med_names3 <- surg2rec::med_names3
+# third list of medication names
+med_names3 <- surg2rec::med_names3
 
 #Create long version of codes file
 codes2 <- codes %>% 
