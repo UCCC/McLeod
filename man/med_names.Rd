@@ -9,7 +9,7 @@
   \item{GENERIC_MED_NAME}{(chr) Generic medication names that occur in the PRESCRIBING table}
 }}
 \source{
-StateCountyFips15jun17.Rda
+med_names.csv
 }
 \usage{
 med_names
