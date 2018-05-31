@@ -146,6 +146,9 @@ med_names <- surg2rec::med_names
 med_names2 <- read.csv("Q:/MattCM/CHORDS/surg2rec/med-names2.csv")
 # med_names2 <- surg2rec::med_names2
 
+med_names3 <- read.csv("Q:/MattCM/CHORDS/surg2rec/med-names3.csv")
+# med_names3 <- surg2rec::med_names3
+
 #Create long version of codes file
 codes2 <- codes %>% 
   tidyr::gather(.) %>% 
@@ -962,7 +965,7 @@ knitr::kable(tab3b, col.names = c("Physician ID", "Num Cohort S", "Num Spine PXs
 
 # Data Tables Protocol: Table Set 4: Rx Information
 
-Boxplots in the following figures show the median (line in the middle of the box), mean (the triangle), the 25th and 75th percentiles (outer edges of the box), 1.5 times the interquartile range (IQR; the whiskers), and points beyond 1.5 times the IQR.
+Boxplots in the following figures show the median (line in the middle of the box), mean (the + symbol), the 25th and 75th percentiles (outer edges of the box), 1.5 times the interquartile range (IQR; the whiskers), and points beyond 1.5 times the IQR.
 
 ## Table 4A: Basic RX Information on Patient Discharge post Index Procedure
 
@@ -1043,12 +1046,15 @@ GROUP BY z.ENC_ID,
 ht_wt <- tab1b2 %>% 
   select(PERSON_ID, avg_ht, avg_wt, ProcedureType)
 
+# Mark medications of interest and recode medications that are similar into same medication name
 tab4a2 <- tab4a %>% 
   mutate(
     med_use  = if_else(GENERIC_MED_NAME %in% med_names$GENERIC_MED_NAME, 1, 0),
-    med_use2 = if_else(GENERIC_MED_NAME %in% med_names2$GENERIC_MED_NAME, 1, 0)
+    med_use2 = if_else(GENERIC_MED_NAME %in% med_names2$GENERIC_MED_NAME, 1, 0),
+    med_use3 = if_else(GENERIC_MED_NAME %in% med_names3$GENERIC_MED_NAME, 1, 0),
+    GENERIC_MED_NAME = dplyr::recode(GENERIC_MED_NAME, "HYDROCODONE/APAP 5/500" = "HYDROCODONE/ACETAMINOPHEN", "MEPERIDINE HCL/PF" = "MEPERIDINE HCL", "METHADONE HCL ORAL SYRINGE" = "METHADONE HCL", "MORPHINE SULFATE PF" = "MORPHINE SULFATE", "MORPHINE SULFATE SR" = "MORPHINE SULFATE", "MORPHINE SULFATE/PF" = "MORPHINE SULFATE", "OXYCODONE HCL/ACETAMINOPHEN" = "OXYCODONE HCL", "OXYCODONE SA" = "OXYCODONE HCL", "OXYCODONE/APAP 5/325" = "OXYCODONE HCL")
   ) %>% 
-  dplyr::filter(med_use2 == 1) %>% 
+  dplyr::filter(med_use3 == 1) %>% 
   dplyr::left_join(ht_wt, by = "PERSON_ID") 
 
 
@@ -1100,7 +1106,7 @@ tab4_test4 <- tab4_test2 %>%
   dplyr::ungroup(.) 
 
 # ggplot(data = tab4_test4, aes(x = as.factor(Var2), y = days_supply2)) +
-#   geom_boxplot() + stat_summary(fun.y=mean, geom= "point", shape = 17, size = 5) +
+#   geom_boxplot() + stat_summary(fun.y=mean, geom= "point", shape = 17, size = 4) +
 #   ylab("RX_DAYS_SUPPLY") + xlab("GENERIC_MED_NAME") + coord_flip()
 
 tab4_test_wide <- tab4_test4 %>% 
@@ -1116,7 +1122,7 @@ lapply(5:ncol(tab4_test_wide), function(x)
   ggplot(data = tab4_test_wide, aes(x = Year, y = tab4_test_wide[[x]], fill = Procedure_Type)) + 
     geom_boxplot() +
     geom_jitter(shape=16, width = .2, height = 0) +
-    stat_summary(fun.y=mean, geom= "point", shape = 17, size = 5) +
+    stat_summary(fun.y=mean, geom= "point", shape = 3, size = 5) +
     ylab("RX_DAYS_SUPPLY") + xlab("YEAR") +
     ggtitle(names(tab4_test_wide)[x]) +
       theme(axis.title.x = element_blank(),
@@ -1125,8 +1131,6 @@ lapply(5:ncol(tab4_test_wide), function(x)
         plot.title = element_text(hjust = 0.5, size = 20))
 )
 
-table(tab4a2$RX_DAYS_SUPPLY > 100)[[2]]
-max(tab4a2$RX_DAYS_SUPPLY > 100)
 
 ```
 
@@ -1166,7 +1170,7 @@ lapply(5:ncol(tab4b_test_wide), function(x)
   ggplot(data = tab4b_test_wide, aes(x = Age, y = tab4b_test_wide[[x]], fill = Procedure_Type)) + 
     geom_boxplot() +
     geom_jitter(shape=16, width = .2, height = 0) +
-    stat_summary(fun.y=mean, geom= "point", shape = 17, size = 5) +
+    stat_summary(fun.y=mean, geom= "point", shape = 3, size = 5) +
     ylab("RX_DAYS_SUPPLY") + xlab("AGE") + 
     ggtitle(names(tab4b_test_wide)[x]) +
       theme(axis.title.x = element_blank(),
@@ -1212,7 +1216,7 @@ lapply(4:ncol(tab4c_test_wide), function(x)
   ggplot(data = tab4c_test_wide, aes(x = rxmd, y = tab4c_test_wide[[x]], fill = Procedure_Type)) + 
     geom_boxplot() +
     geom_jitter(shape=16, width = .2, height = 0) +
-    stat_summary(fun.y=mean, geom= "point", shape = 17, size = 5) +
+    stat_summary(fun.y=mean, geom= "point", shape = 3, size = 5) +
     ylab("RX_DAYS_SUPPLY") + xlab("Prescribing Provider") +
     ggtitle(names(tab4c_test_wide)[x]) +
       theme(
@@ -1256,17 +1260,17 @@ tab4d_nums <- data.frame(num_obs = unlist(lapply(4:ncol(tab4d_test_wide),
 use_vars4 <- which(!(tab4d_nums$num_obs %in% 1))
 
 lapply(4:ncol(tab4d_test_wide), function(x) 
-  ggplot(data = tab4d_test_wide, aes(x = specialty, y = tab4d_test_wide[[x]], fill = Procedure_Type)) + 
+  ggplot(data = tab4d_test_wide, aes(x = specialty , y = tab4d_test_wide[[x]], fill = Procedure_Type)) +
     geom_boxplot() +
     geom_jitter(shape=16, width = .2, height = 0) +
-    stat_summary(fun.y=mean, geom= "point", shape = 17, size = 5) +
+    stat_summary(fun.y=mean, geom= "point", shape = 3, size = 5) +
     ylab("RX_DAYS_SUPPLY") + xlab("Performing Provider Specialty") +
     ggtitle(names(tab4d_test_wide)[x]) +
-      theme(
-        axis.title = element_text(size = 16, face = "bold"),
-        axis.text = element_text(size = 14, face = "bold"),
-        plot.title = element_text(hjust = 0.5, size = 20),
-        axis.text.x = element_text(angle=45, margin(b = .5), vjust = .5))
+    theme(
+      axis.title = element_text(size = 16, face = "bold"),
+      axis.text = element_text(size = 14, face = "bold"),
+      plot.title = element_text(hjust = 0.5, size = 20),
+      axis.text.x = element_text(angle=45, margin(b = .5), vjust = .5))
 )
 
 #psych::describeBy(tab4c_test_wide, group = list(tab4c_test_wide$Procedure_Type, tab4c_test_wide$perf_prov))
@@ -1316,7 +1320,7 @@ ggplot(data = tab4e_test, aes(x = GENERIC_MED_NAME,
                                    fill = Procedure_Type)) + 
     geom_boxplot() +
     geom_jitter(shape=16, width = .2, height = 0) +
-    stat_summary(fun.y=mean, geom= "point", shape = 17, size = 5) +
+    stat_summary(fun.y=mean, geom= "point", shape = 3, size = 5) +
     xlab("GENERIC_MED_NAME") + ylab("RX_REFILLS") +
     coord_flip() +
     ggtitle(names("RX_REFILLS by GENERIC_MED_NAME")) +
@@ -1328,9 +1332,9 @@ ggplot(data = tab4e_test, aes(x = GENERIC_MED_NAME,
 
 ```
 
-## Table 4F:  Mean age for RX refills
+## Table 4F:  Mean and median age for prescriptions that had refills
 
-```{r tab4f_data, eval=FALSE}
+```{r tab4f_data, results="asis"}
 
 refill_data2 <- tab4a %>% 
   select(PERSON_ID, GENERIC_MED_NAME, RX_DAYS_SUPPLY, AGE) %>% 
@@ -1355,47 +1359,16 @@ if (nrow(tab4f) == 0){
   list_tab4f <- split(tab4f_vals[, c(1,2)], seq(nrow(tab4f_vals[, c(1,2)])))
   
   rx_tab <- data.frame(avg_age = unlist(lapply(list_tab4f, 
-                                               function(x) mean(tab4f[tab4f$ProcedureType == x[[1]] & tab4f$GENERIC_MED_NAME == x[[2]],
-                                                                      "AGE"], na.rm = T))))
+                                               function(x) mean(as.numeric(tab4f$AGE[tab4f$Procedure_Type == x[[1]] & tab4f$GENERIC_MED_NAME == x[[2]]]), na.rm = T))))
   
   rx_tab2 <- data.frame(med_age = unlist(lapply(list_tab4f, 
-                                                function(x) median(as.numeric(tab4f[tab4f$ProcedureType == x[[1]] & tab4f$GENERIC_MED_NAME == x[[2]],
-                                                                                    "AGE"]), na.rm = T))))
+                                                function(x) median(as.numeric(tab4f$AGE[tab4f$Procedure_Type == x[[1]] & tab4f$GENERIC_MED_NAME == x[[2]]]), 
+                                                                   na.rm = T))))
   
   tab4f2 <- bind_cols(tab4f_vals, rx_tab)
   tab4f3 <- bind_cols(tab4f2, rx_tab2) 
+  knitr::kable(tab4f3, col.names = "Procedure Type", "GENERIC_MED_NAME", "Average Age", "Median Age")
 }
 
-tab4e_test2 <- tab4e_test %>% 
-  dplyr::mutate(
-    RX_REFILLS = base::sample(1:5, 407, replace = T)
-  )
 
-tab4f <- tab4e_test2 %>% 
-  left_join(., refill_data2, c("PERSON_ID", "GENERIC_MED_NAME", "RX_DAYS_SUPPLY")) %>% 
-  dplyr::filter(RX_REFILLS > 0)
-
-tab4f2 <- tab4f[!duplicated(tab4f[c(2, 3, 4)]),]
-
-tab4f_vals <- tab4f2 %>% 
-  dplyr::select(Procedure_Type, GENERIC_MED_NAME) %>% 
-  dplyr::filter(!duplicated(GENERIC_MED_NAME)) 
-
-list_tab4f <- split(tab4f_vals[, c(1,2)], seq(nrow(tab4f_vals[, c(1,2)])))
-
-list_tab4f <- lapply(list_tab4f, as.data.frame)
-
-rx_tab <- data.frame(avg_age = unlist(lapply(1:length(list_tab4f), 
-                                             function(x) mean(as.numeric(tab4f2$AGE[tab4f2$ProcedureType == list_tab4f[x][[1]][[1]] & tab4f2$GENERIC_MED_NAME == list_tab4f[x][[1]][[2]]]), na.rm = T))))
-
-rx_tab2 <- data.frame(med_age = unlist(lapply(1:length(list_tab4f), 
-                                              function(x) median(as.numeric(tab4f2$AGE[tab4f2$ProcedureType == list_tab4f[x][[1]][[1]] & tab4f2$GENERIC_MED_NAME == list_tab4f[x][[1]][[2]]]), 
-                                                              na.rm = T))))
-
-tab4f2 <- bind_cols(tab4f_vals, rx_tab)
-tab4f3 <- bind_cols(tab4f2, rx_tab2) 
-
-mean(as.numeric(tab4f2$AGE[tab4f2$Procedure_Type == list_tab4f[3][[1]][[1]] & tab4f2$GENERIC_MED_NAME == list_tab4f[3][[1]][[2]]]), na.rm = T)
-
-list_tab4f
 ```
