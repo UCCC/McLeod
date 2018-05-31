@@ -1198,32 +1198,18 @@ tab4d_test <- tab4d_sum %>%
   ) %>% 
   dplyr::filter(Var4 == max_days) %>% 
   dplyr::filter(days_supply2 <= 100) %>% 
-  dplyr::ungroup(.) 
+  dplyr::ungroup(.)  %>% 
+  select(Procedure_Type = Var1, Specialty = Var2, GENERIC_MED_NAME = Var3, RX_DAYS_SUPPLY = days_supply2, Frequency = Freq)
 
-tab4d_test_wide <- tab4d_test %>% 
-  select(Procedure_Type = Var1, specialty = Var2, GENERIC_MED_NAME = Var3, Days = Var4, days_supply2) %>% 
-  spread(., GENERIC_MED_NAME, days_supply2)
 
-tab4d_nums <- data.frame(num_obs = unlist(lapply(4:ncol(tab4d_test_wide), 
-                                         function(x) table(!is.na(tab4d_test_wide[[x]]))[2])))
-
-use_vars4 <- which(!(tab4d_nums$num_obs %in% 1))
-
-lapply(4:ncol(tab4d_test_wide), function(x) 
-  ggplot(data = tab4d_test_wide, aes(x = specialty , y = tab4d_test_wide[[x]], fill = Procedure_Type)) +
-    geom_boxplot() +
-    geom_jitter(shape=16, width = .2, height = 0) +
-    stat_summary(fun.y=mean, geom= "point", shape = 3, size = 5) +
-    ylab("RX_DAYS_SUPPLY") + xlab("Performing Provider Specialty") +
-    ggtitle(names(tab4d_test_wide)[x]) +
-    theme(
-      axis.title = element_text(size = 16, face = "bold"),
-      axis.text = element_text(size = 14, face = "bold"),
-      plot.title = element_text(hjust = 0.5, size = 20),
-      axis.text.x = element_text(angle=45, margin(b = .5), vjust = .5))
-)
 
 #psych::describeBy(tab4c_test_wide, group = list(tab4c_test_wide$Procedure_Type, tab4c_test_wide$perf_prov))
+
+```
+
+```{r tab4d_out, results="asis"}
+
+knitr::kable(tab4d_test)
 
 ```
 
