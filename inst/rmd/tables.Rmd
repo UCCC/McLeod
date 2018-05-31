@@ -257,7 +257,7 @@ knitr::kable(tab1a_all, col.names = c("Year", "Spine", "Pectus", "Total"))
 
 ##Table 1B: Cumulative Demographic Differences by Facility
 
-Heights and weights in this table represent an average of the heights and weights recorded during the procedure encounter.  This was done because 1) height and weight weren't measured at the same time for some individuals and 2) height and weight weren't measured during consistent times for each participant (i.e, measures could be at any point in the encounter).  
+Heights and weights in this table represent an average of the heights and weights recorded during the procedure encounter.  This was done because 1) height and weight weren't measured at the same time for some individuals and 2) height and weight weren't measured during consistent times for each participant (i.e., measures could be at any point in the encounter).  
 
 ```{r tab1b}
 
@@ -352,12 +352,12 @@ tab1b_sum <-
        "Age (Years)" =
        list("Mean (SD)" = ~ qwraps2::mean_sd(AGE, na_rm = T),
             "Median (IQR)"    = ~ qwraps2::median_iqr(AGE, na_rm = T)),
-       "Gender, Freqency(%)" =
+       "Gender, Frequency(%)" =
        list("Male" = ~ qwraps2::n_perc(GENDER == "M", na_rm = T)),
-       "Primary Language, Freqency(%)" =
+       "Primary Language, Frequency(%)" =
        list("English" = ~ qwraps2::n_perc(PRIMARY_LANGUAGE == "eng", na_rm = T),
             "Spanish" = ~ qwraps2::n_perc(PRIMARY_LANGUAGE == "spa", na_rm = T)),
-       "Race, Freqency(%)" =
+       "Race, Frequency(%)" =
        list("Native Hawaiian or Other Pacific Islander"   = ~ qwraps2::n_perc(RACE1 == "HP", na_rm = T),
             "American Indian/Alaska Native"               = ~ qwraps2::n_perc(RACE1 == "IN", na_rm = T),
             "Asian"                                       = ~ qwraps2::n_perc(RACE1 == "AS", na_rm = T),
@@ -970,7 +970,7 @@ Boxplots in the following figures show the median (line in the middle of the box
 
 Tables and figures in this section represent the medications with the highest number of supply days.  For example, if a patient had had multiple Oxycodone HCL prescriptions within the same encounter, the one with the highest RX_DAYS_SUPPLY value.  This was done based on the assumption that the values with the higher RX_DAYS_SUPPLY would be the prescription at discharge.  
 
-```{r tab4a_data, fig.height=8, fig.width=15}
+```{r tab4a_data, fig.height=10, fig.width=15}
 
 tab4a <- odbc::dbGetQuery(con,
        "SELECT
@@ -1124,8 +1124,7 @@ lapply(5:ncol(tab4_test_wide), function(x)
     stat_summary(fun.y=mean, geom= "point", shape = 3, size = 5) +
     ylab("RX_DAYS_SUPPLY") + xlab("YEAR") +
     ggtitle(names(tab4_test_wide)[x]) +
-      theme(axis.title.x = element_blank(),
-        axis.title = element_text(size = 16, face = "bold"),
+      theme(axis.title = element_text(size = 16, face = "bold"),
         axis.text = element_text(size = 14, face = "bold"),
         plot.title = element_text(hjust = 0.5, size = 20))
 )
@@ -1181,55 +1180,7 @@ lapply(5:ncol(tab4b_test_wide), function(x)
 
 ```
 
-## Table 4C: Rx Information by Prescribing Provider for All Narcotic Prescriptions (NRC=Y)
-Where percent prescribed per total patient volume per procedure type of included population subset
-
-```{r tab4c_data, fig.height=10, fig.width=15}
-
-tab4c <- tab4a2 
-
-tab4c_sum <- as.data.frame(table(tab4a2$ProcedureType, tab4a2$RXMD, tab4a2$GENERIC_MED_NAME, tab4a2$RX_DAYS_SUPPLY))
-
-tab4c_test <- tab4c_sum %>% 
-  arrange(Var3) %>% 
-  dplyr::filter(Freq != 0) %>% 
-  group_by(Var1, Var2, Var3) %>% 
-  mutate(
-    max_days = max(as.numeric(as.character(Var4))),
-    days_supply2 = as.numeric(as.character(Var4))
-  ) %>% 
-  dplyr::filter(Var4 == max_days) %>% 
-  dplyr::filter(days_supply2 <= 100) %>% 
-  dplyr::ungroup(.) 
-
-tab4c_test_wide <- tab4c_test %>% 
-  select(Procedure_Type = Var1, rxmd = Var2, GENERIC_MED_NAME = Var3, Days = Var4, days_supply2) %>% 
-  spread(., GENERIC_MED_NAME, days_supply2)
-
-tab4c_nums <- data.frame(num_obs = unlist(lapply(5:ncol(tab4c_test_wide), 
-                                         function(x) table(!is.na(tab4c_test_wide[[x]]))[2])))
-
-use_vars3 <- which(!(tab4c_nums$num_obs %in% 1))
-
-lapply(4:ncol(tab4c_test_wide), function(x) 
-  ggplot(data = tab4c_test_wide, aes(x = rxmd, y = tab4c_test_wide[[x]], fill = Procedure_Type)) + 
-    geom_boxplot() +
-    geom_jitter(shape=16, width = .2, height = 0) +
-    stat_summary(fun.y=mean, geom= "point", shape = 3, size = 5) +
-    ylab("RX_DAYS_SUPPLY") + xlab("Prescribing Provider") +
-    ggtitle(names(tab4c_test_wide)[x]) +
-      theme(
-        axis.title = element_text(size = 16, face = "bold"),
-        axis.text.y = element_text(size = 14, face = "bold"),
-        plot.title = element_text(hjust = 0.5, size = 20),
-        axis.text.x = element_text(angle=90, margin(b = .5), vjust = .5))
-)
-
-#psych::describeBy(tab4c_test_wide, group = list(tab4c_test_wide$Procedure_Type, tab4c_test_wide$perf_prov))
-
-```
-
-## Table 4D: Prescrition supply days by medication and provider specialty
+## Table 4D: Prescription supply days by medication and provider specialty
 
 ```{r tab4d_data, fig.height=10, fig.width=15}
 
@@ -1247,32 +1198,18 @@ tab4d_test <- tab4d_sum %>%
   ) %>% 
   dplyr::filter(Var4 == max_days) %>% 
   dplyr::filter(days_supply2 <= 100) %>% 
-  dplyr::ungroup(.) 
+  dplyr::ungroup(.)  %>% 
+  select(Procedure_Type = Var1, Specialty = Var2, GENERIC_MED_NAME = Var3, RX_DAYS_SUPPLY = days_supply2, Frequency = Freq)
 
-tab4d_test_wide <- tab4d_test %>% 
-  select(Procedure_Type = Var1, specialty = Var2, GENERIC_MED_NAME = Var3, Days = Var4, days_supply2) %>% 
-  spread(., GENERIC_MED_NAME, days_supply2)
 
-tab4d_nums <- data.frame(num_obs = unlist(lapply(4:ncol(tab4d_test_wide), 
-                                         function(x) table(!is.na(tab4d_test_wide[[x]]))[2])))
-
-use_vars4 <- which(!(tab4d_nums$num_obs %in% 1))
-
-lapply(4:ncol(tab4d_test_wide), function(x) 
-  ggplot(data = tab4d_test_wide, aes(x = specialty , y = tab4d_test_wide[[x]], fill = Procedure_Type)) +
-    geom_boxplot() +
-    geom_jitter(shape=16, width = .2, height = 0) +
-    stat_summary(fun.y=mean, geom= "point", shape = 3, size = 5) +
-    ylab("RX_DAYS_SUPPLY") + xlab("Performing Provider Specialty") +
-    ggtitle(names(tab4d_test_wide)[x]) +
-    theme(
-      axis.title = element_text(size = 16, face = "bold"),
-      axis.text = element_text(size = 14, face = "bold"),
-      plot.title = element_text(hjust = 0.5, size = 20),
-      axis.text.x = element_text(angle=45, margin(b = .5), vjust = .5))
-)
 
 #psych::describeBy(tab4c_test_wide, group = list(tab4c_test_wide$Procedure_Type, tab4c_test_wide$perf_prov))
+
+```
+
+```{r tab4d_out, results="asis"}
+
+knitr::kable(tab4d_test)
 
 ```
 
