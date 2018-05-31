@@ -1246,8 +1246,8 @@ tab4e_test_wide <- tab4e_test %>%
   select(-RX_DAYS_SUPPLY) %>% 
   spread(., GENERIC_MED_NAME, RX_REFILLS)
 
-tab4e_nums <- data.frame(num_obs = unlist(lapply(2:ncol(tab4d_test_wide), 
-                                         function(x) table(!is.na(tab4d_test_wide[[x]]))[2])))
+tab4e_nums <- data.frame(num_obs = unlist(lapply(2:ncol(tab4e_test_wide), 
+                                         function(x) table(!is.na(tab4e_test_wide[[x]]))[2])))
 
 use_vars5 <- which(!(tab4e_nums$num_obs %in% 1))
 
