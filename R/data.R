@@ -133,11 +133,11 @@
 #'   \item{GENERIC_MED_NAME}{(chr) Generic medication names that occur in the PRESCRIBING table}
 #'}
 #'
-#' @source StateCountyFips15jun17.Rda
+#' @source med_names.csv
 "med_names"
 #' @title Procedure codes
 #'
-#' @description This table contains the Medication names Lisa McLeod's group are interested in .
+#' @description This table contains the medication names Lisa McLeod's group are interested in.
 #'
 #' @format a \code{data.frame} with 1 variable
 #' \describe{
@@ -151,3 +151,25 @@
 #'
 #' @source StateCountyFips15jun17.Rda
 "codes"
+#' @title Medication Names 2
+#'
+#' @description This table contains the second list medication names Lisa McLeod's group are interested in.
+#'
+#' @format a \code{data.frame} with 1 variable
+#' \describe{
+#'   \item{GENERIC_MED_NAME}{(chr) Generic medication names that occur in the PRESCRIBING table}
+#'}
+#'
+#' @source med-names2.csv
+"med_names2"
+#' @title Medication Names 3
+#'
+#' @description This table contains the third list medication names Lisa McLeod's group are interested in.
+#'
+#' @format a \code{data.frame} with 1 variable
+#' \describe{
+#'   \item{GENERIC_MED_NAME}{(chr) Generic medication names that occur in the PRESCRIBING table}
+#'}
+#'
+#' @source med-names3.csv
+"med_names3"
