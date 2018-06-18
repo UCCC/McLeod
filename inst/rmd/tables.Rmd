@@ -366,9 +366,11 @@ tab1b_sum <-
             "More than one race"                          = ~ qwraps2::n_perc(RACE1 == "MU", na_rm = T),
             "Unknown"                                     = ~ qwraps2::n_perc(RACE1 == "UN", na_rm = T)),
        "Height (inches)" =
-       list("Mean (SD)" = ~ qwraps2::mean_sd(avg_ht, na_rm = T)),
+       list("Mean (SD), Male"   = ~ qwraps2::mean_sd(avg_ht[GENDER == "M"], na_rm = T),
+            "Mean (SD), Female" = ~ qwraps2::mean_sd(avg_ht[GENDER == "F"], na_rm = T)),
        "Weight (lbs)" = 
-       list("Mean (SD)" = ~ qwraps2::mean_sd(avg_wt, na_rm = T)),
+       list("Mean (SD), Male"    = ~ qwraps2::mean_sd(avg_wt[GENDER == "M"], na_rm = T),
+            "Mean (SD), Female" = ~ qwraps2::mean_sd(avg_wt[GENDER == "F"], na_rm = T)),
        "State of patient address" = 
          list("Colorado"     = ~ qwraps2::n_perc(state == "CO", na_rm = T),
               "Wyoming"      = ~ qwraps2::n_perc(state == "WY", na_rm = T),
@@ -904,7 +906,7 @@ tab3a2_prov <- tab3a_prov %>%
 
 ```
 
-This table contains information only for physicians, not fellows, residents, or other providers. Of the `r n_distinct(tab1b2$PERSON_ID)` total patients, `r n_distinct(tab3a_prov$PERSON_ID)` had provider data that was used to create the table below.
+This table contains information only for physicians, not fellows, residents, or other providers. Of the `r n_distinct(tab1b2$PERSON_ID)` total patients, `r n_distinct(tab3a_prov$PERFORMINGPROVIDER)` had provider data that was used to create the table below.
 
 ```{r tab3a_out, results="asis"}
 
