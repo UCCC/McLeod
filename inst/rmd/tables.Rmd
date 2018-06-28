@@ -47,8 +47,6 @@ con <- DBI::dbConnect(odbc::odbc(),
 
 hospital <- ifelse(params$hospital == "CHCO", "Children's Hospital Colorado", "Denver Health")
 
-hospital <- "CHCO"
-
 ```
 
 # Opioid Prescription Refills Data Tables
@@ -166,7 +164,7 @@ codes2 <- codes %>%
 
 ##Table 1A. Surgeries by Year and Surgery Type
 
-This table contains the number of procedures performed by year and type of procedure
+This table contains the number of procedures performed by year and type of procedure.
 
 ```{r tab1_sum_stats}
           
@@ -439,7 +437,11 @@ tab1d_sum <- list(
     )
 )
 
+length(tab1d$los[tab1d$los < 0])
+
 ```
+
+The number of patients with a negative length of stay is `r length(tab1d$los[tab1d$los < 0])`.
 
 ```{r out_tab1d, results="asis"}
 
@@ -479,15 +481,31 @@ if(length(dimnames(table(tab1e$ProcedureType))[[1]]) == 1){
 
 ```
 
-# Figure 1A: Histogram of Patient Age at surgery (CPT Code/Proc Code Date)
+# Figures 1A & B: Histogram of Patient Age at surgery (CPT Code/Proc Code Date) by procedure type
 
-```{r fig1a_data}
+```{r fig1a_data, results="asis"}
 
-fig1a <- ggplot(data = tab1b2, aes(x = AGE)) +
+if(length(tab1b2$ProcedureType[tab1b2$ProcedureType == "Spine"]) > 0){
+  fig1a <- ggplot(data = tab1b2[tab1b2$ProcedureType == "Spine",], aes(x = AGE)) +
   geom_histogram(color="black", fill="red", binwidth = 1) +
-  ylab("Count") + xlab("Age")
+  ylab("Count") + xlab("Age") +
+  ggtitle("Age histogram for Spine Patients")
+  fig1a
+} else{
+  fig1a <- cat("There were no patients who had a Spine procedure\n")
+  fig1a
+}
 
-fig1a
+if(length(tab1b2$ProcedureType[tab1b2$ProcedureType == "Pectus"]) > 0){
+fig1b <- ggplot(data = tab1b2[tab1b2$ProcedureType == "Pectus",], aes(x = AGE)) +
+  geom_histogram(color="black", fill="red", binwidth = 1) +
+  ylab("Count") + xlab("Age") +
+  ggtitle("Age histogram for Pectus Patients")
+  fig1b
+} else{
+  fig1b <- cat("\nThere were no patients who had a Pectus procedure")
+  fig1b
+}
 
 ```
 
@@ -561,7 +579,7 @@ Of the `r n_distinct(tab2a$PERSON_ID)` patients from the initial cohort, `r n_di
 
 
 ```{r tab2a_out, results="asis"}
-knitr::kable(tab2a4, col.names = c("Procedure Type", "Primary DX", "Count of DX", "Mean Length of Stay", "Median Length of Stay"))
+knitr::kable(tab2a4, col.names = c("Procedure Type", "Primary DX", "Count of DX", "Mean Length of Stay", "Median Length of Stay"), digits = 2)
 
 ```
 
@@ -611,17 +629,19 @@ tab2b2 <- tab2b %>%
     min_dt = min(as.Date(PROCDATE)),
     use_dt = if_else(as.Date(min_dt) == as.Date(PROCDATE), 1, 0)
   ) %>% 
-  ungroup(.) %>% 
   dplyr::filter(use_dt == 1) %>% 
   left_join(., los_tab, by = "PERSON_ID") %>% 
-  group_by(PERSON_ID) %>%
+  arrange(PX) %>% 
+  mutate(
+    dup_px = duplicated(PX) # Mark duplicate PXs
+  ) %>% 
+  filter(dup_px == FALSE) %>% # Get rid of duplicate PXs
   mutate(
     px_num = paste0("px_", 1:length(PERSON_ID)),
     num_pxs = (1:length(PERSON_ID))
-  ) %>% 
-  ungroup(.) 
+  )
 
-num_pxs_all1 <- max(tab2b2$num_pxs)
+num_pxs_all1 <- max(tab2b2$num_pxs) # Max number of PXs
 tab2b2$num_pxs_all <- num_pxs_all1
 num_pxs_all2 <- max(tab2b2$num_pxs) - 1
 
@@ -655,6 +675,8 @@ px_tab2 <- data.frame(med_los = unlist(lapply(list_tab2b,
 tab2b3 <- bind_cols(tab2b_test, px_tab)
 tab2b4 <- bind_cols(tab2b3, px_tab2) %>%
   dplyr::rename(ProcedureType = Var1, PX = Var2)
+
+table(tab2b4$Freq[tab2b4$ProcedureType == "Pectus"])
 
 ```
 
@@ -837,6 +859,11 @@ GROUP BY z.PERSON_ID, z.ENC_ID, z.PX, z.PROVIDER,
         d.PROVIDER_TYPE, z.PROCDATE, YEAR(z.ADATE)"
 )
 
+# Get unique providers for procedures
+perf_prov <- unique(tab3a$PERFORMINGPROVIDER)
+
+# Generate code for SQL query of unique providers from above
+perf_prov2  <- paste(perf_prov, collapse = "', '")
 
 # 
 # 
@@ -877,7 +904,7 @@ FROM
               ON z.PERFORMINGPROVIDER = d.PROVIDER
     WHERE  z.ADATE >= '01/01/2011'
            AND 
-               z.PERFORMINGPROVIDER IN(", paste0(sQuote(tab3a$PERFORMINGPROVIDER), sep = ", "), ") 
+               z.PERFORMINGPROVIDER IN('", perf_prov2, "') 
             AND
                z.PX IN('0RG4070', '0RG4071', '0RG407J', '0RG40A0', '0RG40A1', '0RG40AJ', '0RG40J0', '0RG40J1', '0RG40JJ', '0RG40K0', '0RG40K1', '0RG40KJ', '0RG40Z0', '0RG40Z1', '0RG40ZJ', '0RG6070', '0RG6071', '0RG607J', '0RG60A0', '0RG60A1', '0RG60AJ', '0RG60J0', '0RG60J1', '0RG60JJ', '0RG60K0', '0RG60K1', '0RG60KJ', '0RG60Z0', '0RG60Z1', '0RG60ZJ', '0RG7070', '0RG7071', '0RG707J', '0RG70A0', '0RG70A1', '0RG70AJ', '0RG70J0', '0RG70J1', '0RG70JJ', '0RG70K0', '0RG70K1', '0RG70KJ', '0RG70Z0', '0RG70Z1', '0RG70ZJ', '0RG8070', '0RG8071', '0RG807J', '0RG80A0', '0RG80A1', '0RG80AJ', '0RG80J0', '0RG80J1', '0RG80JJ', '0RG80K0', '0RG80K1', '0RG80KJ', '0RG80Z0', '0RG80Z1', '0RG80ZJ', '0RGA070', '0RGA071', '0RGA07J', '0RGA0A0', '0RGA0A1', '0RGA0AJ', '0RGA0J0', '0RGA0J1', '0RGA0JJ', '0RGA0K0', '0RGA0K1', '0RGA0KJ', '0RGA0Z0', '0RGA0Z1', '0RGA0ZJ', '0SG0070', '0SG0071', '0SG007J', '0SG00A0', '0SG00A1', '0SG00AJ', '0SG00J0', '0SG00J1', '0SG00JJ', '0SG00K0', '0SG00K1', '0SG00KJ', '0SG00Z0', '0SG00Z1', '0SG00ZJ', '0SG1070', '0SG1071', '0SG107J', '0SG10A0', '0SG10A1', '0SG10AJ', '0SG10J0', '0SG10J1', '0SG10JJ', '0SG10K0', '0SG10K1', '0SG10KJ', '0SG10Z0', '0SG10Z1', '0SG10ZJ', '0SG3070', '0SG3071', '0SG307J', '0SG30A0', '0SG30A1', '0SG30AJ', '0SG30J0', '0SG30J1', '0SG30JJ', '0SG30K0', '0SG30K1', '0SG30KJ', '0SG30Z0', '0SG30Z1', '0SG30ZJ', '81', '81.01', '81.02', '81.03', '81.04', '81.05', '81.06', '81.07', '81.08', '81.09', '81.3', '81.35', '81.36', '81.37', '81.38', '81.39', '81.61', '81.62', '81.63', '81.64', '84.51', '0WU80JZ', '0WU84JZ', '34.74', '22532', '22533', '22548', '22551', '22554', '22556', '22558', '22586', '22590', '22595', '22600', '22610', '22612', '22614', '22630', '22633', '22634', '22800', '22802', '22804', '22808', '22810', '22812', '22818', '22819', '22830', '22840', '22841', '22842', '22843', '22844', '22845', '22846', '22847', '22848', '22849', '22850', '22852', '22853', '22854', '22855', '22856', '22857', '22858', '22859', '22861', '22862', '22864', '22865', '22867', '22868', '22869', '22870', '21740', '21742', '21743')
 GROUP BY z.ENC_ID,
@@ -912,7 +939,7 @@ This table contains information only for physicians, not fellows, residents, or 
 
 ```{r tab3a_out, results="asis"}
 
-knitr::kable(tab3a2_prov, col.names = c("Year", "Provider Specialty", "Cohort Spine PXs", "Total Spine Procedures", "Cohort Pectus PXs", "Total Pectus Procedures"))
+knitr::kable(tab3a2_prov, col.names = c("Year", "Provider Specialty", "Cohort Spine PXs", "Total Spine PXs", "Cohort Pectus PXs", "Total Pectus PXs"))
 
 ```
 
@@ -1052,6 +1079,7 @@ ht_wt <- tab1b2 %>%
 # Mark medications of interest and recode medications that are similar into same medication name
 tab4a2 <- tab4a %>% 
   mutate(
+    GENERIC_MED_NAME = stringr::str_to_upper(GENERIC_MED_NAME),
     med_use  = if_else(GENERIC_MED_NAME %in% med_names$GENERIC_MED_NAME, 1, 0),
     med_use2 = if_else(GENERIC_MED_NAME %in% med_names2$GENERIC_MED_NAME, 1, 0),
     med_use3 = if_else(GENERIC_MED_NAME %in% med_names3$GENERIC_MED_NAME, 1, 0),
@@ -1060,8 +1088,6 @@ tab4a2 <- tab4a %>%
   dplyr::filter(med_use3 == 1) %>% 
   dplyr::left_join(ht_wt, by = "PERSON_ID") 
 
-
-  
 # 
 # tab4_test <- as.data.frame(table(tab4a2$ProcedureType, tab4a2$PERSON_ID, tab4a2$GENERIC_MED_NAME))
 # 
@@ -1124,7 +1150,8 @@ use_vars <- which(!(tab4_nums$num_obs %in% 1))
 lapply(5:ncol(tab4_test_wide), function(x) 
   ggplot(data = tab4_test_wide, aes(x = Year, y = tab4_test_wide[[x]], fill = Procedure_Type)) + 
     geom_boxplot() +
-    geom_jitter(shape=16, width = .2, height = 0) +
+    stat_boxplot(geom = 'errorbar') +
+    geom_jitter(shape = 16, width = 0.2, height = 0) +
     stat_summary(fun.y=mean, geom= "point", shape = 3, size = 5) +
     ylab("RX_DAYS_SUPPLY") + xlab("YEAR") +
     ggtitle(names(tab4_test_wide)[x]) +
@@ -1133,10 +1160,9 @@ lapply(5:ncol(tab4_test_wide), function(x)
         plot.title = element_text(hjust = 0.5, size = 20))
 )
 
-
 ```
 
-Number of prescriptions with over 100 RX_DAYS_SUPPLYS = `r ifelse(max(tab4a2$RX_DAYS_SUPPLY > 100) >= 1, table(tab4a2$RX_DAYS_SUPPLY > 100)[[2]], 0)`
+Number of prescriptions with over 100 RX_DAYS_SUPPLYS = `r ifelse(max(tab4a2$RX_DAYS_SUPPLY > 100) >= 1, table(tab4a2$RX_DAYS_SUPPLY > 100)[[2]], 0)`.  These values were recoded to 100 for scaling .
 
 ## Table 4B: Procedure, Dose and Age (Initial Narcotic Prescription Only)
 
@@ -1185,6 +1211,8 @@ lapply(5:ncol(tab4b_test_wide), function(x)
 
 ## Table 4D: Prescription supply days by medication and provider specialty
 
+The table below gives the frequency of RX_DAYS_SUPPLY, by GENERIC_MED_NAME, and procedure type. 
+
 ```{r tab4d_data, fig.height=10, fig.width=15}
 
 tab4d <- tab4a2 
@@ -1196,17 +1224,16 @@ tab4d_test <- tab4d_sum %>%
   dplyr::filter(Freq != 0) %>% 
   group_by(Var1, Var2, Var3) %>% 
   mutate(
-    max_days = max(as.numeric(as.character(Var4))),
     days_supply2 = as.numeric(as.character(Var4))
   ) %>% 
-  dplyr::filter(Var4 == max_days) %>% 
-  dplyr::filter(days_supply2 <= 100) %>% 
+  # dplyr::filter(days_supply2 <= 100) %>% 
+  # mutate(
+  #   max_days = max(as.numeric(as.character(Var4)))
+  # ) %>% 
+  # dplyr::filter(Var4 == max_days) %>% 
   dplyr::ungroup(.)  %>% 
   select(Procedure_Type = Var1, Specialty = Var2, GENERIC_MED_NAME = Var3, RX_DAYS_SUPPLY = days_supply2, Frequency = Freq)
 
-
-
-#psych::describeBy(tab4c_test_wide, group = list(tab4c_test_wide$Procedure_Type, tab4c_test_wide$perf_prov))
 
 ```
 
