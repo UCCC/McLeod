@@ -6,7 +6,7 @@ output:
 params: 
     hospital: 
         label: "Hospital from which data is being pulled"
-        value: CHCO
+        value: DH
         input: select
         choices: [CHCO, DH]
     DBServerName: 
@@ -16,7 +16,7 @@ params:
         choices: [cc-s-d05.ucdenver.pvt, ihrsql1.ihr.or.kp.org, PRDVDWSQL01, SQL01, BI01, uat.edwsql.hosp.dhha.org]
     DBName:
         label: "Database Name:"
-        value: VDW_3_1_CHCO_0618
+        value: VDW_3_1_DH_0418
         input: select
         choices: [VDW_3_1_DH, VDW, CHORDS_VDW_CC_3.1, CHORDS_VDW_CT_3.1, CHORDS_VDW_HP_3.1, CHORDS_VDW_MC_3.1, CHORDS_VDW_SC_3.1, CHORDS_VDW_SS_3.1, CHORDSlive.dbo, CHORDSlive, VDW_3_1_DH_0418, VDW_3_1_CHCO_0618, VDW_Aligned]
 ---
@@ -1215,9 +1215,15 @@ The table below gives the frequency of RX_DAYS_SUPPLY, by GENERIC_MED_NAME, and 
 
 ```{r tab4d_data, fig.height=10, fig.width=15}
 
-tab4d <- tab4a2 
+tab4d <- tab4a2 %>% 
+  group_by(PERSON_ID, GENERIC_MED_NAME) %>% 
+  mutate(
+    max_rx_days = max(RX_DAYS_SUPPLY),
+    use_days = if_else(RX_DAYS_SUPPLY == max_rx_days, 1, 0)
+  ) %>% 
+  filter(use_days == 1)
 
-tab4d_sum <- as.data.frame(table(tab4a2$ProcedureType, tab4a2$SPECIALTY, tab4a2$GENERIC_MED_NAME, tab4a2$RX_DAYS_SUPPLY))
+tab4d_sum <- as.data.frame(table(tab4d$ProcedureType, tab4d$SPECIALTY, tab4d$GENERIC_MED_NAME, tab4d$RX_DAYS_SUPPLY))
 
 tab4d_test <- tab4d_sum %>% 
   arrange(Var3) %>% 
